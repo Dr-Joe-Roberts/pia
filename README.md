@@ -8,7 +8,7 @@ PIA is a private research workspace that connects **people → projects → dead
 
 [![PIA research map with entirely fictional demo data](docs/demo-poster.jpg)](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4)
 
-[Watch the 44-second walkthrough](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4) — actual app interactions at 1.5× speed, with entirely fictional data: reshape the graph, edit connected records, and save an update through ChatGPT.
+[Watch the 39-second walkthrough](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4) — a two-second professor-icon opening, then actual app interactions at 1.5× speed with entirely fictional data: reshape the graph, edit connected records, save an update through ChatGPT, and return to the map.
 
 The live ChatGPT update uses a private Sites-hosted demo with Sites-managed authentication. The self-hosted edition uses its own OAuth setup, described below.
 
