@@ -1,67 +1,71 @@
-# Personal tasks
+# Personal tasks and teaching planning
 
-The **Tasks** tab tracks your whole workload: teaching, research, supervision, administration and personal work. A project is optional. A lecture to prepare or expenses to submit can exist independently of any research project.
+The **Tasks** tab tracks teaching, research, supervision, administration and personal work. A project is optional. A lecture to prepare or expenses to submit can stand alone.
 
-## Use the tracker
+## Capture, organise and plan
 
-1. Open **Tasks → New task**.
-2. Enter a title, such as “Prepare the Insect Biology practical”. That is the only required field.
-3. Optionally choose or type a category, set a due date and priority, add notes, or link a project.
-4. Select **Create task**. Close the editor to return to the list.
-5. Select the circle beside a task to complete it. Select the tick to reopen it as **To do**. Open its title to edit any field.
+1. Select **Quick capture** from any section, or press **Alt+N**. Enter a title and select **Add to Inbox**.
+2. Open **Tasks → Inbox** and select the task. Add details when you are ready. **New task** opens the full editor directly.
+3. Set **Plan to work on** to choose a working day. Set **Due date** only if there is a deadline. These dates are independent.
+4. Add an effort estimate in minutes. The list's **Plan…** menu can move work to today, tomorrow or next Monday without changing the deadline. Planning removes the task from Inbox.
+5. Select **Save changes**. Tick the task in the list when finished; untick it to reopen it.
 
-| Field | Behaviour |
+| View | What appears |
 | --- | --- |
-| Category | Teaching, Research, Supervision, Administration, Personal or General; custom labels are supported. |
-| Status | To do, In progress, Waiting or Completed. |
-| Priority | Low, Normal or High; Normal is the default. |
-| Due date | Optional calendar date. Today and overdue use UK time, including daylight saving. |
-| Project | Optional. New links must point to an active project in this workspace. |
-| Notes | Optional free text for context and links. |
+| My day | Unfinished tasks planned for today, with estimated minutes. |
+| My week | Tasks planned for the current Monday–Sunday week. Select a day or Whole week; each day shows task and effort totals. |
+| Inbox | Unfinished tasks captured for later organisation. Clear **Keep in Inbox** in the editor, or use **Plan…**, to organise them. |
+| Follow up | Waiting tasks whose follow-up date is today or earlier. |
+| Due today / Upcoming / Overdue | Unfinished tasks whose deadlines are today / later / earlier. |
+| Waiting | Tasks with status Waiting, including those without follow-up dates. |
+| Completed / All tasks | Retained history / every active task. Archived tasks are in Settings. |
 
-**All tasks** includes completed tasks. **Today**, **Upcoming** and **Overdue** show unfinished tasks due today, after today and before today respectively. **Waiting** shows unfinished waiting tasks. **Completed** retains finished work for reference or reopening. Undated tasks remain in All tasks and Waiting when applicable. Category, status, priority and project filters combine with search. Sort by due date, priority or most recently updated.
+Search combines with category, status, priority, project, module and academic year filters. Tasks without a planned date remain available in All tasks and other applicable views. Totals exclude missing estimates and describe planned effort, not time measured or available calendar capacity. Date boundaries use UK time, including daylight saving.
 
-Tasks also appear in global search and, when linked, in the project's **Linked tasks** section. Archiving removes a task from active views; restore it from **Settings → Archive**. JSON exports and imports include tasks. Completed tasks are retained until you choose to archive them.
+## Teaching templates and checklists
 
-A due date does not send a notification. This version does not create recurring tasks, calendar events or email reminders.
+In **New task → Start with a template**, choose practical preparation, teaching preparation, marking or module updates. Edit the suggested checklist to fit your work; these are starting points rather than institutional procedures. Add a **Module**, such as Insect Biology, and an **Academic year**, such as 2026/27. Neither requires a project.
 
-## Run this version
+Add, edit, tick or remove checklist items in the editor, then save. **Save as template** saves the task title, category, module, notes, estimated effort and an unchecked copy of its checklist. It does not save the task itself. Your template appears in the new-task menu after saving; dates, academic year and project links are chosen for each new task.
 
-The task tracker uses the same app and database as PIA. No additional paid service, dependency or database migration is required for this feature.
+## Repeating work and follow-up
 
-For a hosted private workspace, follow the [browser setup in the README](../README.md#set-up-in-your-browser). You do not need to install Node.js or Git. It explains how to deploy this fork with the task tracker and HAU branding.
+Choose **Repeat**, the interval and, optionally, **Repeat until**. A repeating task needs a due date or planned date. Completing an existing task creates one next occurrence and retains the completed one. Its checklist resets, dates move forward and the waiting-for state clears. Reopening and completing the original again does not create a second successor or remove the first. Imported completed history does not generate new tasks.
 
-For an optional isolated local demonstration on a computer where installation is permitted, use Node.js 24 and Git. After the customisations are merged into `main`, run:
+Repeats follow the original calendar date. A monthly task dated 31 January moves to the last day of February, then 31 March. Changing an occurrence's due date, or its planned date when there is no due date, starts a new cadence. A late completion advances one occurrence at a time. For irregular term dates, start from a template and set dates explicitly.
 
-```sh
-git clone https://github.com/Dr-Joe-Roberts/pia.git pia-tasks-demo
-cd pia-tasks-demo
-npm ci
-npm run demo
-```
+Set status **Waiting**, enter **Waiting for**, and choose a **Follow-up date** to track a reply or dependency. The Follow up view shows what needs checking. This feature does not contact anyone automatically.
 
-Open **http://127.0.0.1:5174/lab#tasks**. This demonstration uses entirely fictional records in a local D1 database. Use a separate clone of this fork for your real workspace, following the [private local setup](../README.md#developer-setup) or [Cloudflare setup](deployment.md). The browser-only build (`npm run build:demo`) stores edits in that browser and has no live assistant connection.
+## Reminders and weekly review
 
-For an existing private PIA deployment, back up its data, apply the task-tracker changes to its deployment repository, deploy with the normal build/deploy process, and open the Tasks tab. Preserve your existing Cloudflare resource bindings and secrets. If starting from this fork's placeholder configuration, complete the [Cloudflare deployment guide](deployment.md) first. Adding the feature in GitHub alone does not create a running Cloudflare deployment.
+Open **Settings → Reminders and weekly review**. Task reminders and the weekly workload digest are separate opt-in settings; select **Save reminder settings** after changing them. Choose a UK hour, a deadline warning window from zero to seven days, and a weekly review day/time. An individual **Remind me on** date is also available in the task editor.
+
+The deployed app checks hourly and saves alerts in **Reminders**, even while the app is closed. Each unfinished deadline, follow-up or reminder date generates one notice after its threshold. Repeated hourly checks do not duplicate it; changing the date permits a new notice. The weekly digest reports planned workload, deadlines and overdue tasks; it does not change their priorities or dates. Existing notices remain until read, including after a task is completed. The inbox displays the latest 50 notices.
+
+Optional browser notifications use a generic message to avoid exposing task titles on screen. They require permission on that device and an open PIA page. No email, phone push, Outlook or calendar integration is included. The static demo calculates reminders only while open. You can disable reminders in Settings at any time.
+
+## Records, backups and deployment
+
+Tasks appear in global search and in a linked project's **Linked tasks** section. Archive a task from its editor; restore it in **Settings → Archive**. Complete backups include tasks, templates and completion history: see [data and backups](data-and-backups.md).
+
+Use the [browser setup guide](../README.md#set-up-in-your-browser). No local Node.js or Git installation is needed. This update uses the existing Cloudflare resources, with no new package dependency or external service. It adds database migration **0002_planning.sql** and an hourly reminder trigger. The normal **npm run deploy** command in Cloudflare applies the migration. Preserve existing resource bindings and secrets when updating a deployment copy.
 
 ## Assistant access
 
-An authorised MCP assistant can read and update the same task records. Example requests:
+An authorised MCP assistant can read and update the same tasks and saved templates. For example:
 
-> Add a Teaching task called “Prepare next week's practical”. Leave the due date unset.
+> Add a Teaching task called “Prepare the practical”, planned for Friday, with an estimate of 90 minutes. Leave its deadline unset.
 
-> Show my unfinished teaching tasks due this week.
+> Show waiting tasks whose follow-up date has passed.
 
-> Mark “Submit travel expenses” as completed.
+> Use my marking template to prepare a task for this year's assessment. Ask me for the deadline if it is unknown.
 
-The `task` record kind uses `name`, `category`, `status`, `priority`, `due_date`, `project_id`, `notes` and server-managed `completed_at`. Omit `project_id` or set it to `null` for a standalone task. Assistants must read the latest record and revision before updating it; `upsert_record` replaces the submitted data rather than merging individual fields. No due date, project association or completion should be inferred without evidence or instruction.
+The task schema includes `planned_date`, `estimated_minutes`, `module`, `academic_year`, `inbox`, `waiting_for`, `follow_up_date`, `remind_on`, `checklist` and `repeat`, alongside the existing title, category, status, priority, deadline, notes and optional project fields. Saved templates use `task_template`. Assistants must read the latest record and revision before updating it; `upsert_record` replaces submitted data rather than merging fields. Do not infer deadlines or completions without instruction or evidence.
 
 ## Validation
 
-The automated suite covers title-only creation, invalid dates and states, combined filters, UK date boundaries, completion/reopening timestamps, revision conflicts, idempotency, owner isolation, optional project references, archiving/restoration, search and backup round trips. Real Worker integration tests exercise task creation and reads through OAuth/MCP, completion through the browser API, CSRF and rejection of anonymous task access.
+Automated tests cover planning separately from deadlines, UK date boundaries, recurrence and retries, checklist validation, archive integrity, owner isolation, session/CSRF checks, reminder settings and attachment recovery. Browser checks use fictional records; they do not verify a live Cloudflare account's configuration.
 
-Browser checks also covered title-only creation, edits, reload persistence, completion/reopening, archive/restore, global search and project navigation. The 390 px mobile frame had no horizontal page overflow; the task editor kept its controls accessible. All displayed records are fictional.
+![HAU task planner with fictional records](task-planner-desktop.jpg)
 
-![Desktop task tracker with fictional records](task-tracker-desktop.jpg)
-
-[Mobile layout screenshot](task-tracker-mobile.jpg)
+[Mobile task planner](task-planner-mobile.jpg) · [Mobile task editor](task-editor-mobile.jpg)

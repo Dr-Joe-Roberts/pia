@@ -77,7 +77,7 @@ export function rebaseDemo(fixture, anchor = new Date().toISOString().slice(0, 1
   const delta = dateMillis(anchor) - dateMillis(fixture.demo.reference_date);
   const years = Number(anchor.slice(0, 4)) - Number(fixture.demo.reference_date.slice(0, 4));
   const result = structuredClone(fixture);
-  const dateKeys = new Set(["date", "due_date", "completed_at", "start", "end", "created_at", "updated_at", "exported_at"]);
+  const dateKeys = new Set(["date", "due_date", "planned_date", "follow_up_date", "remind_on", "anchor", "until", "completed_at", "start", "end", "created_at", "updated_at", "exported_at"]);
   const walk = value => {
     if (Array.isArray(value)) { value.forEach(walk); return; }
     if (!value || typeof value !== "object") return;

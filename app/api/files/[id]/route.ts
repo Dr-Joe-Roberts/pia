@@ -8,9 +8,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   try {
     const user = authorized(request), id = parse(idSchema, (await context.params).id);
     assertKind("project");
-    const file = await database().prepare("SELECT name,content_type FROM files WHERE user_id=? AND id=?").bind(user, id).first<{ name: string; content_type: string }>();
+    const file = await database().prepare("SELECT name,content_type,object_key FROM files WHERE user_id=? AND id=?").bind(user, id).first<{ name: string; content_type: string; object_key: string | null }>();
     if (!file || !env.BUCKET) throw new AppError(404, "not_found", "The attachment could not be found.");
-    const object = await env.BUCKET.get(`private/${encodeURIComponent(user)}/${id}`);
+    const object = await env.BUCKET.get(file.object_key || `private/${encodeURIComponent(user)}/${id}`);
     if (!object) throw new AppError(404, "not_found", "The attachment could not be found.");
     return new Response(object.body, { headers: { "Content-Type": file.content_type, "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox; default-src 'none'" } });
   } catch (e) { return failure(e); }

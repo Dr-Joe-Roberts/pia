@@ -1,3 +1,4 @@
+import { nextRecurringTask } from "./task-planning.ts";
 import { env } from "cloudflare:workers";
 import { AppError, type AppRecord, type RecordKind, normalizeData, parse, idSchema, mutationKeySchema, taskCompletion } from "./domain";
 import { allowedKinds, assertKind, assertProductionScope, hasLab, isKindAllowed, WORKSPACE_KIND } from "./workspace";
@@ -98,6 +99,15 @@ export async function writeRecord(user: string, input: { id?: string; kind?: Rec
   if (action === "create") statements.push(db.prepare(`INSERT OR IGNORE INTO records(id,user_id,kind,revision,data_json,created_at,updated_at,deleted_at,last_mutation_id) SELECT ?,?,?,1,?,?,?,NULL,? WHERE ${guard}${deadlineGuard}${targetGuard}`).bind(id, user, kind, JSON.stringify(data), now, now, attempt, ...args, ...deadlineArgs, ...targetArgs));
   else if (action === "update") statements.push(db.prepare(`UPDATE records SET data_json=?,revision=revision+1,updated_at=?,last_mutation_id=? WHERE user_id=? AND id=? AND revision=? AND deleted_at IS NULL AND ${guard}${deadlineGuard}${targetGuard}`).bind(JSON.stringify(data), now, attempt, user, id, input.expected_revision ?? -1, ...args, ...deadlineArgs, ...targetArgs));
   else statements.push(db.prepare(`UPDATE records SET deleted_at=?,revision=revision+1,updated_at=?,last_mutation_id=? WHERE user_id=? AND id=? AND revision=? AND deleted_at IS ${action === "restore" ? "NOT " : ""}NULL AND ${guard}${targetGuard}`).bind(action === "archive" ? now : null, now, attempt, user, id, input.expected_revision ?? -1, ...args, ...targetArgs));
+  if (kind === "task" && action === "update" && current?.data.status !== "completed" && data.status === "completed") {
+    const next = nextRecurringTask(data);
+    if (next) {
+      const childId = "repeat_" + await hash({ user, parent: id });
+      const changed = "EXISTS (SELECT 1 FROM records WHERE user_id=? AND id=? AND last_mutation_id=?)";
+      statements.push(db.prepare(`INSERT OR IGNORE INTO records(id,user_id,kind,revision,data_json,created_at,updated_at,deleted_at,last_mutation_id) SELECT ?,?,'task',1,?,?,?,NULL,? WHERE ${changed}`).bind(childId, user, JSON.stringify(next), now, now, attempt, user, id, attempt));
+      statements.push(db.prepare("INSERT OR IGNORE INTO audit_events(id,user_id,record_id,action,revision,data_json,created_at) SELECT ?,user_id,id,'repeat',revision,data_json,? FROM records WHERE user_id=? AND id=? AND last_mutation_id=?").bind("repeat_" + attempt, now, user, childId, attempt));
+    }
+  }
   if (kind === "meal") {
     // A whole-day confirmation describes a particular log. Changing it requires the
     // user to confirm again, and must be in the same transaction as the meal write.
@@ -131,13 +141,13 @@ export async function setLabLink(user: string, input: { project_id: string; stud
   await db.batch(statements); mutationResult((await getMutation(user, key, requestHash))!);
   return { project: await getRecord(user, project.id), student: await getRecord(user, student.id) };
 }
-export async function exportData(user: string) {
+export async function exportData(user: string, includeAudit = true) {
   const db = database(), scope = allowedKinds(), scopeSql = "kind IN (" + scope.map(() => "?").join(",") + ")";
   const [rows, links, files, audit] = await Promise.all([
     db.prepare("SELECT * FROM records WHERE user_id=? AND " + scopeSql + " ORDER BY created_at,id").bind(user, ...scope).all<Row>(),
     hasLab ? db.prepare("SELECT project_id,student_id,created_at FROM lab_links WHERE user_id=?").bind(user).all() : Promise.resolve({ results: [] }),
     hasLab ? db.prepare("SELECT id,name,content_type,size,created_at FROM files WHERE user_id=?").bind(user).all() : Promise.resolve({ results: [] }),
-    db.prepare("SELECT record_id,action,revision,data_json,created_at FROM audit_events WHERE user_id=? AND record_id IN (SELECT id FROM records WHERE user_id=? AND " + scopeSql + ") ORDER BY created_at").bind(user, user, ...scope).all(),
+    includeAudit ? db.prepare("SELECT record_id,action,revision,data_json,created_at FROM audit_events WHERE user_id=? AND record_id IN (SELECT id FROM records WHERE user_id=? AND " + scopeSql + ") ORDER BY created_at").bind(user, user, ...scope).all() : Promise.resolve({ results: [] }),
   ]);
   return { format: "private-app-backup", app: WORKSPACE_KIND, version: 1, exported_at: new Date().toISOString(), records: await enrich(user, rows.results.map(fromRow)), links: links.results, files: files.results, audit_events: audit.results, attachment_note: "Attachment metadata is included. Download attachment files separately; private URLs require this app's sign-in." };
 }

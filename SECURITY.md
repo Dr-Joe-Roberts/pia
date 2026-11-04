@@ -24,6 +24,12 @@ OAuth grants are stored in Cloudflare KV. Its updates are eventually consistent:
 
 Back up before upgrades and verify your configured database before applying migrations. Keep dependency and runtime updates under review. The included test suite and release check help find mistakes but do not constitute an independent security audit.
 
+## Backups and reminders
+
+Complete archives contain private records and file contents, with no archive encryption. They exclude authentication secrets, sessions, OAuth grants, audit events and reminder inbox history. Restore endpoints require the owner session and CSRF protection; archives are previewed before writes, file checksums are verified, and existing different file contents are never overwritten. Keep a private copy outside the hosting account and test recovery with fictional data.
+
+The hourly reminder handler reads only the configured owner workspace and saves notices in D1. Reminders are opt-in and do not send email or phone push. Optional browser notifications use generic text and require an open page and browser permission. The guided setup page exposes configuration field names, not their values or records.
+
 ## Report a vulnerability privately
 
 If GitHub private vulnerability reporting is enabled for this repository, use **Security → Report a vulnerability**. If that option is unavailable, open a minimal issue asking the maintainer for a private reporting channel without including exploit details, credentials, or private data. Do not guess an email address or post a working exploit in a public issue.

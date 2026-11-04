@@ -4,7 +4,7 @@
 
 This fork adapts [Assaf Shocher's PIA](https://github.com/assafshocher/PIA) with a personal task tracker and Harper Adams navy, yellow and the university logo. It is a personal workspace, with no institutional endorsement or university single sign-on implied. See the [branding sources](docs/branding.md).
 
-![HAU-branded task tracker with entirely fictional records](docs/task-tracker-desktop.jpg)
+![HAU-branded task tracker with entirely fictional records](docs/task-planner-desktop.jpg)
 
 [Set up in your browser](#set-up-in-your-browser) · [Task guide](docs/personal-tasks.md) · [Security](SECURITY.md) · [Advanced deployment](docs/deployment.md) · [Developer setup](#developer-setup)
 
@@ -12,13 +12,15 @@ This fork adapts [Assaf Shocher's PIA](https://github.com/assafshocher/PIA) with
 
 | Area | What you can do |
 | --- | --- |
-| Personal tasks | Create a task with just a title. Optionally add a category, due date, priority, notes or project link. |
-| Workload views | See Today, Upcoming, Overdue, Waiting, Completed or All tasks. Search, filter, complete, reopen, archive and restore tasks. |
+| Personal tasks | Capture a title in Inbox, then add a category, deadline, priority, checklist or optional project link. |
+| Workload planning | Plan My day and My week, with effort totals and planned dates separate from deadlines. Filter by module or academic year. |
+| Teaching and follow-up | Start from teaching templates, save your own, repeat routine tasks and track who you are waiting for. Completed occurrences stay in your history. |
+| Reminders | Opt in to in-app deadline and follow-up alerts, a weekly digest and optional browser notifications. |
 | Research | Connect people, projects and deadlines; retain project updates, submission history, links and private attachments. |
-| Backups | Export and import records, including tasks. Attachment files need a separate backup. |
+| Backups | Download records and attachment files together. Preview a restore before adding missing items; existing records are preserved. |
 | Optional AI connection | Authorise a compatible assistant to read or update the same workspace through MCP. The app also works without AI. |
 
-Task dates use UK time, including daylight saving. Due dates do not send notifications; recurring tasks and calendar synchronisation are not included.
+Task dates and reminder times use UK time, including daylight saving. Reminders are off until you enable them in Settings. Browser notifications need the page open; email, phone push and Outlook/calendar synchronisation are not included.
 
 ## Set up in your browser
 
@@ -55,7 +57,7 @@ These are entries in a website form, not commands to run on your computer. The d
 
 If the form asks for `OWNER_PASSWORD`, `SESSION_SECRET` or `APP_ORIGIN` now, use the explanations in step 4. If the app address is not yet known, enter `https://setup.invalid` for `APP_ORIGIN` temporarily. Keep `DEMO_MODE` set to `false` if shown.
 
-Select **Deploy**. After it finishes, copy the app's HTTPS address from Cloudflare. An initial configuration error is expected while `APP_ORIGIN` still contains the temporary value; complete step 4 to unlock the app.
+Select **Deploy**. After it finishes, copy the app's HTTPS address from Cloudflare. A guided setup page appears while the login settings or `APP_ORIGIN` are incomplete. It explains which settings to check without exposing their values; complete step 4 to unlock the app.
 
 ### 4. Set up your private login
 
@@ -110,7 +112,7 @@ This is a **single-owner workspace**. Anyone with the owner password, and any ap
 
 The repository contains source code; your deployed records and attachments live in your Cloudflare account. This storage is not end-to-end encrypted. An authorised assistant receives the records it reads. Keep real records, exports, credentials and private screenshots out of the repository.
 
-Download a JSON backup before updates and keep attachment files separately, because JSON exports contain attachment references rather than the files themselves. Preserve the deployment repository's resource IDs and secrets when updating. See [security and maintenance](SECURITY.md), [data and backups](docs/data-and-backups.md), and [deployment updates](docs/deployment.md#domains-and-updates).
+Before updates, use **Settings → Download complete backup** and confirm that the `.tar` file is in Downloads. It contains records, templates, relationships, reminder preferences and private attachment files. The recorded date means an archive was prepared; the browser cannot verify that you retained it. Preserve the deployment repository's resource IDs and secrets when updating. See [security and maintenance](SECURITY.md), [data and backups](docs/data-and-backups.md), and [deployment updates](docs/deployment.md#domains-and-updates).
 
 ## Connect an assistant, optionally
 
@@ -126,7 +128,7 @@ Complete PIA's login and review the requested permissions. Start with a request 
 
 Review any later saved changes in the app. Manage or revoke connections at `/auth/connections`; logging out of the browser does not revoke an assistant's access. See the [AI connection guide](docs/ai-connection.md) for client requirements and verified limitations.
 
-PIA does not call a model API or require an AI API key. Optional assistant use depends on your chosen provider's account, subscription and support for remote MCP and OAuth. Hosting and assistant subscriptions are separate. PIA does not independently connect to email or Slack or schedule background updates.
+PIA does not call a model API or require an AI API key. Optional assistant use depends on your chosen provider's account, subscription and support for remote MCP and OAuth. Hosting and assistant subscriptions are separate. PIA does not independently connect to email or Slack. Its hourly background job only generates reminders and the weekly digest inside your private PIA inbox.
 
 ## Demo and original project
 

@@ -6,6 +6,8 @@ import RecordEditor, { Modal } from "./RecordEditor";
 import LabSettings from "./LabSettings";
 import TaskWorkspace from "./TaskWorkspace";
 import TaskEditor from "./TaskEditor";
+import QuickCapture from "./QuickCapture";
+import { ReminderInbox } from "./Reminders";
 import ResearchGraph from "./ResearchGraph";
 import GlobalSearch from "./GlobalSearch";
 import FilterToggleGroup from "./FilterToggleGroup";
@@ -122,6 +124,7 @@ export default function LabWorkspace() {
   const anyFilters = Boolean(statuses.length || degrees.length || deadlineCommitments.length || certainties.length || topics.length || tab === "deadlines" && deadlineFilter !== "all");
   return <div className={`lab-app lab-topnav ${tab === "connections" ? "lab-graph-page" : ""}`}>
     <aside className="lab-sidebar"><header className="lab-workspace-header"><div className="lab-brand-line"><span className="lab-brand-symbol"><FlaskConical size={23} strokeWidth={1.6} /></span><span>RESEARCH WORKSPACE</span><span className="lab-private-pill"><span />{IS_BROWSER_DEMO ? "Fictional demo" : "Private workspace"}</span></div><div className="lab-title-row"><div><img className="hau-logo" src={`${import.meta.env.BASE_URL}hau-logo-white.svg`} alt="Harper Adams University" width="1920" height="625" /><h1>PIA</h1><p>Principal Investigator’s Assistant.</p></div></div></header>
+    <div className="pia-workspace-actions"><ReminderInbox state={state} open={openRecord} /><QuickCapture refresh={refresh} notify={setToast} /></div>
     <GlobalSearch state={state} open={openRecord} loading={loading} />
     <nav className="lab-tabs" aria-label="Lab sections">{TABS.map(({ id, label, icon: Icon }) => <button className={tab === id ? "is-active" : ""} key={id} onClick={() => changeTab(id)} aria-current={tab === id ? "page" : undefined}><Icon size={16} />{label}{id === "projects" && <span>{state.projects.length}</span>}{id === "people" && <span>{state.students.length}</span>}{id === "tasks" && <span>{state.tasks.filter(task => task.data.status !== "completed").length}</span>}</button>)}<button className="lab-refresh" disabled={refreshing} aria-label="Refresh lab data" title={loadedAt ? `Last refreshed ${loadedAt}` : "Refresh"} onClick={refresh}><RefreshCw size={15} className={refreshing ? "lab-spin" : ""} /></button></nav><div className="lab-sidebar-footer"><span className="lab-status-dot" />{IS_BROWSER_DEMO ? "Saved in this browser" : "Private research workspace"}</div></aside>
     <main className="lab-main">

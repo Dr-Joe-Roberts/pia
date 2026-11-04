@@ -22,7 +22,7 @@ The build command is `npm run build`; the deployment command is `npm run deploy`
 
 | Binding | Cloudflare resource | Purpose |
 | --- | --- | --- |
-| `DB` | D1 database | Records, including tasks, and browser sessions. |
+| `DB` | D1 database | Records, tasks, templates, browser sessions, reminder preferences and notices. |
 | `BUCKET` | Private R2 bucket | Attachment files. |
 | `OAUTH_KV` | KV namespace | Assistant OAuth connections. |
 
@@ -33,6 +33,14 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
 This prints a new secret for you to place in the password manager and secret configuration. Do not paste it into an issue, commit, screenshot or chat with an untrusted party. `OWNER_PASSWORD` and `SESSION_SECRET` must be different values.
+
+## Planning update and background reminders
+
+This version adds **drizzle/0002_planning.sql** for reminder preferences, notification history and recoverable attachment object paths. Existing records are retained. Keep the deployment command as **npm run deploy** so Cloudflare applies all pending migrations before publishing the Worker. If upgrading from an earlier version, retain its JSON export and a separate copy of important attachments before this first upgrade; subsequent complete archives include attachments.
+
+`wrangler.jsonc` includes the hourly Cron expression `0 * * * *`. The handler interprets saved reminder settings in **Europe/London**, so the chosen UK hour follows daylight saving. Reminders are off by default. Enable them in Settings, then check **Reminders** after the scheduled hour; Cloudflare trigger changes can take several minutes to propagate. No email service or push subscription is configured. See [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
+
+For missing login settings or an origin mismatch, opening the app shows a guided setup page. It names the settings to check without disclosing values. APIs remain protected and return structured errors. A database migration failure must still be resolved in the deployment log.
 
 ## Command-line deployment
 
@@ -71,7 +79,7 @@ Before adding private records:
 
 1. In a signed-out/private browser window, `/lab` should require sign-in; `/api/records` must not return records.
 2. Sign in at `/login`. Add a temporary project, refresh, and confirm it persists. Archive it when finished.
-3. Download a backup and confirm that it contains only records from your new workspace.
+3. Download a complete backup and confirm the `.tar` file is in Downloads. Open **Preview a backup to restore** and check its counts, then Cancel. If testing attachments, use a fictional file and confirm it is included.
 4. If using AI, follow the [connection guide](ai-connection.md), make a read-only request, then try one clearly authorized change and inspect it in the app.
 
 These steps verify your installation. The repository's local tests and build do not prove that your account's resources, routing, secrets or a particular AI client have been configured correctly.
@@ -91,7 +99,9 @@ For command-line upgrades, review release notes and migrations, pull the version
 | Setup required or app stays locked | All three required values exist; password and session secret meet their lengths; `APP_ORIGIN` exactly matches the HTTPS address being visited. |
 | Login works locally but not online | The deployment needs its own secrets. Local `.dev.vars` is not deployed. |
 | Storage unavailable or missing tables | `DB` points to the intended D1 database and the migrations completed remotely. |
-| Attachments unavailable | `BUCKET` is bound to a private R2 bucket. |
+| Attachments unavailable | `BUCKET` is bound to a private R2 bucket, and migration 0002 completed. |
+| Reminders do not appear | Save the opt-in reminder settings, check the UK schedule and confirm the hourly Cron Trigger is present. Browser notifications additionally need permission and an open page. |
+| Complete backup refuses a file | Repair the missing private attachment or remove its broken link. The app will not label an incomplete archive complete. |
 | OAuth cannot finish | `OAUTH_KV` exists, origin and callback agree, and the client supports the documented OAuth flow. |
 | A new clone shows no records | Expected: source code does not include anyone's private database. Import your own reviewed backup if needed. |
 | Demo command refuses existing configuration | Use a fresh clone for the demo instead of replacing private configuration. |

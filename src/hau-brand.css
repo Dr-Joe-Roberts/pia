@@ -42,3 +42,22 @@ body{background:#f5f7fa;color:var(--hau-ink)}
 .connect-page{color:var(--hau-ink)}.connect-page h1,.connect-page h1 em,.connect-page a{color:var(--hau-navy)}
 @media(max-width:1100px){.lab-app .lab-sidebar{flex-wrap:wrap}.lab-app .lab-tabs{flex:1 1 100%;justify-content:flex-start}.lab-app .lab-sidebar .lab-workspace-header{flex:1}.hau-logo{width:144px}}
 @media(max-width:600px){.lab-app .lab-sidebar{gap:12px;padding:14px 12px}.hau-logo{width:120px}.lab-sidebar .lab-title-row>div{gap:12px}.lab-sidebar .lab-title-row h1{font-size:17px;padding-left:12px}.lab-app .lab-sidebar .lab-workspace-header{flex-basis:100%}.lab-app .lab-tabs{margin-top:0}.lab-app .lab-tabs>button{min-height:42px}}
+
+/* Place global planning controls explicitly so they cannot displace the navigation. */
+.lab-app.lab-topnav>.lab-sidebar{grid-template-columns:auto minmax(180px,320px) minmax(0,1fr);gap:12px 20px}
+.lab-topnav>.lab-sidebar>.lab-workspace-header{grid-column:1;grid-row:1}
+.lab-topnav>.lab-sidebar>.lab-global-search{grid-column:2;grid-row:1;max-width:none}
+.lab-topnav>.lab-sidebar>.pia-workspace-actions{grid-column:3;grid-row:1;display:flex;justify-content:flex-end;align-items:center;gap:10px;min-width:0}
+.lab-topnav>.lab-sidebar>.lab-tabs{grid-column:1/-1;grid-row:2;justify-content:flex-end}
+.pia-workspace-actions .pia-quick-capture{width:auto;margin:0;gap:12px}
+.pia-workspace-actions .pia-reminder-inbox{position:relative;margin:0}
+.pia-workspace-actions .lab-button{color:var(--hau-navy);white-space:nowrap}
+.pia-workspace-actions .pia-notices{position:absolute;top:100%;right:0;z-index:40;width:min(360px,calc(100vw - 32px));max-height:55vh;padding:12px;background:#fff;color:var(--hau-ink);border:1px solid var(--hau-line);border-radius:10px;box-shadow:0 12px 36px #01216933}
+@media(max-width:850px){
+ .lab-app.lab-topnav>.lab-sidebar{grid-template-columns:minmax(0,1fr) minmax(150px,1fr);gap:10px}
+ .lab-topnav>.lab-sidebar>.pia-workspace-actions{grid-column:1/-1;grid-row:2;justify-content:flex-start}
+ .lab-topnav>.lab-sidebar>.lab-tabs{grid-row:3;justify-content:flex-start}
+ .pia-workspace-actions .pia-notices{left:0;right:auto}
+}
+@media(max-width:400px){.hau-logo{width:100px}.lab-sidebar .lab-title-row>div{gap:8px}.lab-sidebar .lab-title-row h1{padding-left:8px;font-size:16px}}
+.lab-dialog input[type=checkbox],.lab-app input[type=checkbox]{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;flex:0 0 18px;accent-color:var(--hau-navy)}

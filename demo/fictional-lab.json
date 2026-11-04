@@ -1209,7 +1209,23 @@
         "notes": "Check the equipment list and prepare the student handout.",
         "completed_at": null,
         "links": [],
-        "files": []
+        "files": [],
+        "planned_date": "2026-10-18",
+        "estimated_minutes": 30,
+        "module": "Example teaching module",
+        "academic_year": "2026/27",
+        "checklist": [
+          {
+            "id": "demo-step-1",
+            "text": "Review the learning outcomes",
+            "done": true
+          },
+          {
+            "id": "demo-step-2",
+            "text": "Update teaching materials",
+            "done": false
+          }
+        ]
       },
       "created_at": "2026-10-15T12:00:00.000Z",
       "updated_at": "2026-10-17T12:00:00.000Z",
@@ -1229,7 +1245,23 @@
         "notes": "Use the agreed rubric and write a short feedback paragraph.",
         "completed_at": null,
         "links": [],
-        "files": []
+        "files": [],
+        "planned_date": "2026-10-18",
+        "estimated_minutes": 60,
+        "module": "Example teaching module",
+        "academic_year": "2026/27",
+        "checklist": [
+          {
+            "id": "demo-step-1",
+            "text": "Review the learning outcomes",
+            "done": true
+          },
+          {
+            "id": "demo-step-2",
+            "text": "Update teaching materials",
+            "done": false
+          }
+        ]
       },
       "created_at": "2026-10-15T12:00:00.000Z",
       "updated_at": "2026-10-17T12:00:00.000Z",
@@ -1249,7 +1281,9 @@
         "notes": "Collect the receipts and complete the claim.",
         "completed_at": null,
         "links": [],
-        "files": []
+        "files": [],
+        "planned_date": "2026-10-18",
+        "estimated_minutes": 90
       },
       "created_at": "2026-10-15T12:00:00.000Z",
       "updated_at": "2026-10-17T12:00:00.000Z",
@@ -1269,7 +1303,9 @@
         "notes": "Waiting for a reply with suitable times.",
         "completed_at": null,
         "links": [],
-        "files": []
+        "files": [],
+        "waiting_for": "Fictional collaborator",
+        "follow_up_date": "2026-10-18"
       },
       "created_at": "2026-10-15T12:00:00.000Z",
       "updated_at": "2026-10-17T12:00:00.000Z",
@@ -1309,7 +1345,8 @@
         "notes": "Fictional example of a completed task with an optional project link.",
         "completed_at": "2026-10-17T12:00:00.000Z",
         "links": [],
-        "files": []
+        "files": [],
+        "inbox": true
       },
       "created_at": "2026-10-15T12:00:00.000Z",
       "updated_at": "2026-10-17T12:00:00.000Z",

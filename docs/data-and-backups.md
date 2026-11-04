@@ -1,30 +1,51 @@
 # Data, backups and moving your workspace
 
-Your deployed records live in your Cloudflare D1 database. Attachments live in the private R2 bucket. OAuth grants live in KV. A source-code clone contains none of those private resources.
+Records live in your Cloudflare D1 database, attachments in private R2, and OAuth grants in KV. A source-code clone contains none of those private resources.
 
-## Export
+## Download a complete backup
 
-Use **Settings → Export lab backup** to download a JSON snapshot containing active and archived lab records, relationships and settings. The browser export omits the internal audit log. Treat this file as private: notes, contact details, research plans and links can all be present.
+Use **Settings → Download complete backup**. This prepares one portable `.tar` archive containing active and archived records, tasks, templates, relationships, workspace settings, reminder preferences and attachment files. It includes uploaded files even when no current record links to them. Checksums verify each attachment; missing or changed attachment contents stop the download rather than silently producing a partial archive. External website links are retained as links, not downloaded.
 
-**JSON exports do not embed attachment binaries.** Keep a separate copy of important files. An attachment URL in a backup refers to the original app's authenticated file endpoint; it does not transfer the underlying object to another installation.
+Confirm that the file appears in Downloads, and retain a private copy outside the hosting account. **Last complete backup prepared** records when the browser prepared a download, not proof that the file was saved or retained. Backups are manual; there is no automatic off-site backup service. Avoid editing the workspace in another tab while preparing an archive.
 
-## Import
+| Limit or exclusion | Detail |
+| --- | --- |
+| Archive | Up to 100 MB, including the manifest and archive overhead. |
+| Records | Up to 2,000 records; manifest up to 7 MB. |
+| Attachments | Up to 1,000 files, no more than 20 MB per file. |
+| Excluded | Passwords, session secrets, sign-in sessions, OAuth grants, audit log and reminder inbox history. |
+| External links | Website content and remotely hosted files are not copied into the archive. |
 
-Review the file before choosing **Settings → Import backup**. Selecting a valid file starts the merge; this release does not have a separate import-preview screen. A merge adds missing IDs and keeps existing records; it is not a command to overwrite the entire current database. Repeating the same import should not create duplicate records with the same IDs. Historical audit events are not restored by this import.
+Archives are not encrypted by PIA. Treat them as private records. Imported provenance can include the full original source record, so the archive may contain more information than the visible record title. For a larger workspace, use a managed D1/R2 backup process; these limits are deliberate browser-memory bounds.
 
-The browser accepts workspace JSON backups under 7 MB with up to 2,000 records. Legacy Base44 files need conversion to the workspace format first; the repository includes conversion utilities, but the browser does not convert them automatically. Original imported provenance can contain the full source record, so a backup containing imported records may reveal much more than the visible display name. Use only files you intend to bring into the workspace.
+## Preview and restore
+
+1. Select **Settings → Preview a backup to restore** and choose the complete `.tar` file. The app validates the archive and every attachment checksum before showing the preview.
+2. Review records to add, existing records to preserve, archived records and missing attachments. Selecting a file does not write any records.
+3. Optionally tick **Also replace reminder settings with this backup's settings**. This can re-enable reminders; it is off by default.
+4. Select **Confirm restore of missing records**, or **Cancel**.
+5. Check several tasks, archived items, research relationships and attachment downloads after restoration.
+
+Restore merges missing IDs. It preserves existing records and refuses to overwrite a different attachment with the same ID. Repeating the merge is safe. Restoring is not a single transaction across all files and records: an interrupted operation can have added some items, and the same archive can be retried. A conflict or invalid file is reported rather than silently overwritten.
+
+To recover a complete historical version, restore into a **new, empty deployment**. Merging into an existing workspace does not roll back newer edits or unarchive an existing record. Original creation dates and completion data are retained; new revision/audit history starts in the destination. Recurring completed records are imported as history without creating extra occurrences.
+
+### Older JSON backups
+
+The same preview accepts workspace JSON backups under 7 MB and up to 2,000 records. JSON contains metadata and links, not attachment contents; the preview identifies this limitation. Missing files need recovery from the original storage. The existing authenticated `/api/export` endpoint still produces this legacy records export.
+
+Legacy Base44 files need conversion to workspace format first. The repository includes conversion utilities; the browser does not convert them automatically. Only import files you intend to bring into the workspace.
 
 ## Move to another deployment
 
-1. Export from the original app and keep the file private.
-2. Create and verify the new empty deployment with its own credentials and storage.
-3. Review the file, then use **Import backup** in the new app to merge it.
-4. Check people–project links, targets, archived records and custom settings.
-5. Move attachments separately and update their links as appropriate.
-6. Reconnect your assistants to the new `/mcp` URL and revoke grants on the old app when the move is complete.
+1. Download and retain a complete backup from the original app.
+2. Create and verify an empty private deployment with its own credentials and resources.
+3. Preview and restore the archive in the new app. Uploaded attachments retain their private IDs and links.
+4. Check tasks, templates, archived records, people–project links, targets, settings and several attachment downloads.
+5. Reconnect assistants to the new `/mcp` address; revoke grants on the old app when the move is complete.
 
-Retain the old app until you have checked the transfer. Deleting a Worker does not necessarily remove all of its separately provisioned databases, buckets or namespaces; manage those resources deliberately in your cloud account.
+Retain the original app until you have verified the transfer. Deleting a Worker does not necessarily remove its separately provisioned databases, buckets or namespaces.
 
 ## Demo data
 
-The public demo is intentionally fabricated, including descriptions, updates and source URLs. It is not a sanitized export of a real lab. Use a fresh local clone for demonstrations and recordings. Do not record your real workspace and rely on changing only its names afterward.
+The demonstration is entirely fictional, including descriptions, updates and external URLs. Its complete archive contains browser-stored records and settings but no uploaded attachments. Use a separate demo workspace for recordings rather than renaming real records.

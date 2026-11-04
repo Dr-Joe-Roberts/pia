@@ -1,16 +1,17 @@
+import { weekStart, addDays, type PlanningData } from "./task-planning.ts";
 /** Personal tasks can exist independently of a research project. */
 export const TASK_STATUSES = ["todo", "in_progress", "waiting", "completed"] as const;
 export const TASK_PRIORITIES = ["low", "normal", "high"] as const;
 export const TASK_CATEGORIES = ["General", "Teaching", "Research", "Supervision", "Administration", "Personal"] as const;
 export const TASK_STATUS_LABELS: Record<string, string> = { todo: "To do", in_progress: "In progress", waiting: "Waiting", completed: "Completed" };
 export const TASK_PRIORITY_LABELS: Record<string, string> = { low: "Low", normal: "Normal", high: "High" };
-export type TaskView = "all" | "today" | "upcoming" | "overdue" | "waiting" | "completed";
+export type TaskView = "my_day" | "my_week" | "inbox" | "follow_up" | "all" | "today" | "upcoming" | "overdue" | "waiting" | "completed";
 export const TASK_VIEWS: { id: TaskView; label: string }[] = [
-  { id: "all", label: "All tasks" }, { id: "today", label: "Today" },
+  { id: "my_day", label: "My day" }, { id: "my_week", label: "My week" }, { id: "inbox", label: "Inbox" }, { id: "follow_up", label: "Follow up" }, { id: "all", label: "All tasks" }, { id: "today", label: "Due today" },
   { id: "upcoming", label: "Upcoming" }, { id: "overdue", label: "Overdue" },
   { id: "waiting", label: "Waiting" }, { id: "completed", label: "Completed" },
 ];
-type TaskLike = { id: string; deleted_at?: string | null; updated_at: string; data: {
+type TaskLike = { id: string; deleted_at?: string | null; updated_at: string; data: PlanningData & {
   name?: string; notes?: string; category?: string; status?: string; priority?: string;
   due_date?: string | null; project_id?: string | null;
 } };
@@ -24,13 +25,17 @@ export function taskInView(task: TaskLike, view: TaskView, today: string) {
   if (view === "all") return true;
   if (view === "completed") return done;
   if (done) return false;
+  if (view === "my_day") return task.data.planned_date === today;
+  if (view === "my_week") { const start = weekStart(today); return Boolean(task.data.planned_date && task.data.planned_date >= start && task.data.planned_date <= addDays(start, 6)); }
+  if (view === "inbox") return Boolean(task.data.inbox);
+  if (view === "follow_up") return task.data.status === "waiting" && Boolean(task.data.follow_up_date && task.data.follow_up_date <= today);
   if (view === "waiting") return task.data.status === "waiting";
   if (!due) return false;
   return view === "today" ? due === today : view === "overdue" ? due < today : due > today;
 }
 export function filterTasks<T extends TaskLike>(tasks: T[], filters: {
   view: TaskView; today: string; query?: string; category?: string; status?: string;
-  priority?: string; project?: string;
+  priority?: string; project?: string; module?: string; year?: string;
 }) {
   const words = (filters.query || "").trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return tasks.filter(task => {
@@ -40,7 +45,9 @@ export function filterTasks<T extends TaskLike>(tasks: T[], filters: {
       && (!filters.status || (d.status || "todo") === filters.status)
       && (!filters.priority || (d.priority || "normal") === filters.priority)
       && (!filters.project || (filters.project === "unlinked" ? !d.project_id : d.project_id === filters.project))
-      && words.every(word => [d.name, d.notes, d.category].filter(Boolean).join(" ").toLocaleLowerCase().includes(word));
+      && (!filters.module || d.module === filters.module)
+      && (!filters.year || d.academic_year === filters.year)
+      && words.every(word => [d.name, d.notes, d.category, d.module, d.academic_year, d.waiting_for].filter(Boolean).join(" ").toLocaleLowerCase().includes(word));
   });
 }
 export function sortTasks<T extends TaskLike>(tasks: T[], sort = "due"): T[] {

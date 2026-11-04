@@ -1,3 +1,6 @@
+import { setupPage } from "./setup";
+import { backupApi } from "./backups";
+import { planningApi, runReminders } from "./planning";
 import OAuthProvider, { AuthorizationError, CimdFetchError, insufficientScope, type OAuthHelpers, type OAuthResourceContext } from "@cloudflare/workers-oauth-provider";
 import { withTrustedAuth } from "../lib/auth-context";
 import { AppError } from "../lib/domain";
@@ -73,6 +76,8 @@ async function defaultHandler(request: Request, env: WorkerEnv): Promise<Respons
   if (path.startsWith("/api/")) {
     if (!auth) throw new AppError(401, "sign_in_required", "Sign in to your private workspace.");
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) requireCsrf(request, auth);
+    if (path === "/api/planning") return planningApi(request, env, auth.userId);
+    if (path.startsWith("/api/backups/")) return withTrustedAuth(auth, () => backupApi(request, env, auth.userId));
     return withTrustedAuth(auth, () => dispatchApi(request));
   }
   if (path === "/auth/logout") {
@@ -166,6 +171,7 @@ function secure(response: Response, request: Request) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 export default {
+  async scheduled(_controller: ScheduledController, env: WorkerEnv, ctx: ExecutionContext) { ctx.waitUntil(runReminders(env, new Date(_controller.scheduledTime))); },
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     try {
       assertConfigured(request, env);
@@ -177,6 +183,7 @@ export default {
       if (new URL(request.url).pathname === "/oauth/register" && request.method === "POST") await rateLimit(request, env, "oauth-registration", 30, 300);
       return secure(await providerFor(canonicalOrigin(request, env)).fetch(request, env, ctx), request);
     } catch (error) {
+      if (error instanceof AppError && ["setup_required", "invalid_host"].includes(error.code) && request.method === "GET" && ["/", "/login", "/lab", "/setup"].includes(new URL(request.url).pathname)) return secure(setupPage(env, error.code === "invalid_host"), request);
       if (error instanceof AuthorizationError || error instanceof CimdFetchError) return secure(html(page("Connection could not finish", `<h1>Connection could not finish</h1><p>${escapeHtml(error instanceof AuthorizationError ? error.description : "The assistant metadata could not be verified.")}</p><p>Restart the connection from your assistant.</p>`), undefined, 400), request);
       return secure(failure(error), request);
     }
