@@ -1,64 +1,156 @@
-<img src="public/pia-professor.png" width="72" alt="PIA’s absent-minded professor icon" />
+# PIA: research and personal tasks
 
-# PIA
+**Joe Roberts's personal version of Principal Investigator's Assistant.** Manage research projects alongside teaching, marking, supervision, administration and everyday tasks. A task can stand alone; it does not need to belong to a project.
 
-**Principal Investigator's Assistant.**
+This fork adapts [Assaf Shocher's PIA](https://github.com/assafshocher/PIA) with a personal task tracker and Harper Adams navy, yellow and the university logo. It is a personal workspace, with no institutional endorsement or university single sign-on implied. See the [branding sources](docs/branding.md).
 
-PIA is a private research workspace that connects **people → projects → deadlines** in one interactive map. Follow a student into their project, explore its submission history, or add a new connection directly on the graph. Use it in your browser, or connect an AI assistant through MCP to help keep it current.
+![HAU-branded task tracker with entirely fictional records](docs/task-tracker-desktop.jpg)
 
-[![PIA research map with entirely fictional demo data](docs/demo-poster.jpg)](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4)
+[Set up in your browser](#set-up-in-your-browser) · [Task guide](docs/personal-tasks.md) · [Security](SECURITY.md) · [Advanced deployment](docs/deployment.md) · [Developer setup](#developer-setup)
 
-[Watch the 39-second walkthrough](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4) — a two-second professor-icon opening, then actual app interactions at 1.5× speed with entirely fictional data: reshape the graph, edit connected records, save an update through ChatGPT, and return to the map.
+## What this version does
 
-The live ChatGPT update uses a private Sites-hosted demo with Sites-managed authentication. The self-hosted edition uses its own OAuth setup, described below.
+| Area | What you can do |
+| --- | --- |
+| Personal tasks | Create a task with just a title. Optionally add a category, due date, priority, notes or project link. |
+| Workload views | See Today, Upcoming, Overdue, Waiting, Completed or All tasks. Search, filter, complete, reopen, archive and restore tasks. |
+| Research | Connect people, projects and deadlines; retain project updates, submission history, links and private attachments. |
+| Backups | Export and import records, including tasks. Attachment files need a separate backup. |
+| Optional AI connection | Authorise a compatible assistant to read or update the same workspace through MCP. The app also works without AI. |
 
-[Try the online demo](https://assafshocher.github.io/pia/) · [Try it locally](#try-the-demo) · [Deploy your private copy](docs/deployment.md) · [Connect your assistant](docs/ai-connection.md) · [How it works](docs/architecture.md)
+Task dates use UK time, including daylight saving. Due dates do not send notifications; recurring tasks and calendar synchronisation are not included.
 
-## What you can do
+## Set up in your browser
 
-- **Track your own workload.** Keep teaching, marking, supervision, administration and personal tasks in one place. Tasks need only a title; categories, due dates, priorities and project links are optional. See the [personal task guide](docs/personal-tasks.md).
-- **See the whole lab.** A compact, three-column research graph with distinct people, projects and deadlines; meaningful connection styles; sorting; and independent filters for each kind of record.
-- **Move through the relationships.** Open connected records, follow their history, and add people–project or project–deadline links without leaving the map.
-- **Keep plans honest.** Distinguish AI suggestions, tentative targets, confirmed plans and actual submissions. Keep earlier rejections visible after a later acceptance.
-- **Track the people behind the work.** Students, collaborators and prospective candidates, with custom roles, statuses and next actions.
-- **Choose your view.** Lists, compact records, cards and a deadline timeline, with a global search and responsive layouts.
-- **Keep context together.** Project descriptions, Markdown and equations, source links, private attachments, dated updates and next steps.
-- **Stay in control.** Export your records, merge a backup, restore archived work, and keep project updates and submission history. Concurrent edits are checked before they overwrite anything.
+**You do not need to install Node.js, Git or any other software on your computer.** Use GitHub and Cloudflare in your web browser. Cloudflare runs the build and deployment commands for you.
 
-## A real app, with an optional AI connection
+You need your GitHub account, a Cloudflare account and a password manager to generate and save two different random passwords. Cloudflare may ask you to enable storage services or supply billing details; check its displayed terms before proceeding. Creating a repository alone does not create a running app.
 
-PIA works without an AI assistant. Its browser interface and database are the application; its MCP server gives an authorized assistant tools to read and update the same records.
+### 1. Put the customised version on the main branch
 
-The app does **not** call a model API, require an AI API key, or include AI inference in its hosting. You use the account or subscription of your chosen assistant. That assistant must support remote MCP and OAuth; availability and permissions depend on its product and plan. A skill can provide helpful workflows, but it does not replace the running app or its authentication.
+Open [pull request #1](https://github.com/Dr-Joe-Roberts/pia/pull/1). If it is still open, select **Merge pull request → Confirm merge**. If GitHub already marks it **Merged**, continue to step 2.
 
-## Try the demo
+This puts the task tracker, HAU branding and these instructions on `main`, the version used by the deployment button below.
 
-**[Open the public demo](https://assafshocher.github.io/pia/)** — no login required. Explore fictional people, projects and deadlines, edit records and connections, and reset whenever you like. Edits stay in your browser. The public demo has no live MCP connection or file uploads; deploy your own private copy for those features.
+### 2. Create your Cloudflare app
 
-To build this browser-only edition, run `npm run build:demo`. The static output is `dist-demo/`, configured for the `/pia/` path. It uses the same workspace interface with a local data adapter and never calls the private app.
+Use this button, which points to **Dr-Joe-Roberts/pia**:
 
-Install **Node.js 24 LTS** and Git, then:
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Dr-Joe-Roberts/pia)
+
+Sign in to Cloudflare and connect GitHub when prompted. Choose an available name, such as `joe-pia`. The flow creates a new deployment repository in your GitHub account and provisions the app's database, attachment storage and OAuth storage. Keep the binding names `DB`, `BUCKET` and `OAUTH_KV` unchanged.
+
+**Save the address of the new repository.** It becomes the source for this deployment; later edits to the original `pia` fork do not automatically appear in that separate copy.
+
+### 3. Check the build settings and deploy
+
+Confirm these values in the Cloudflare form:
+
+| Cloudflare field | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Deploy command | `npm run deploy` |
+
+These are entries in a website form, not commands to run on your computer. The deploy command also prepares the database tables. Use the full Worker app for private hosting; the static demo is a separate preview.
+
+If the form asks for `OWNER_PASSWORD`, `SESSION_SECRET` or `APP_ORIGIN` now, use the explanations in step 4. If the app address is not yet known, enter `https://setup.invalid` for `APP_ORIGIN` temporarily. Keep `DEMO_MODE` set to `false` if shown.
+
+Select **Deploy**. After it finishes, copy the app's HTTPS address from Cloudflare. An initial configuration error is expected while `APP_ORIGIN` still contains the temporary value; complete step 4 to unlock the app.
+
+### 4. Set up your private login
+
+There are three settings: your sign-in password, a separate secret used internally by the app, and the app's web address. **Only `OWNER_PASSWORD` is used to sign in.**
+
+In the [Cloudflare dashboard](https://dash.cloudflare.com/), open **Workers & Pages → your app → Settings → Variables and Secrets**. These are the Worker's settings, not the build environment settings.
+
+Select **Add** for a missing setting, or **Edit** if it already exists. Enter the following names exactly, one setting at a time:
+
+| Variable name | Value to enter | Type |
+| --- | --- | --- |
+| `OWNER_PASSWORD` | A unique random password of **at least 20 characters**, generated and saved in your password manager. This is your PIA sign-in password, separate from your GitHub, Cloudflare and HAU passwords. | **Secret** |
+| `SESSION_SECRET` | A **second, different random value**, preferably **64 characters**, generated and saved in your password manager. The app uses it to protect login sessions. | **Secret** |
+| `APP_ORIGIN` | The exact HTTPS app address supplied by Cloudflare, with no final slash or page path. Replace `https://setup.invalid` if you used it earlier. | **Secret** |
+
+The app address is not confidential, but storing `APP_ORIGIN` as a Secret also works and matches the deployment form's secret prompts. A Text value works too; see the [deployment guide](docs/deployment.md#configuration-values) for preserving it across future deployments. Do not add a second entry with the same name.
+
+For example, **if** Cloudflare gives you the address below, use that whole line as `APP_ORIGIN`:
+
+```text
+https://joe-pia.example.workers.dev
+```
+
+This is an example, not your live address. Use yours, without `/login`, `/lab`, `/mcp` or a trailing `/`. Paste the value only, without quotation marks.
+
+Leave `DEMO_MODE` as `false` if it exists; it may also be absent. Select **Deploy** to apply the settings. Enter both generated passwords directly into Cloudflare and retain them in your password manager; do not put them in GitHub files, screenshots or chat.
+
+Cloudflare's [dashboard instructions for secrets](https://developers.cloudflare.com/workers/configuration/secrets/#via-the-dashboard) describe the same controls.
+
+### 5. Sign in and check the app
+
+1. Open your app's address and sign in using **`OWNER_PASSWORD`**.
+2. Select **Tasks → New task**, enter a fictional example such as “Prepare a teaching session”, choose **Teaching**, and select **Create task**. Leave the project field empty.
+3. Refresh the page and confirm that the task remains. Complete or archive it when finished.
+4. In a private/incognito browser window, open your app at `/lab`. It should require sign-in. Opening `/api/records?kind=task` or `/api/export` in that signed-out window should return a sign-in error and no private records.
+
+Before entering real student or institutional information, confirm that this hosting arrangement is acceptable under HAU's data policies.
+
+## If setup does not work
+
+| What you see | What to check |
+| --- | --- |
+| “Setup required”, or a configuration error before login | All three settings in step 4 are present on the Worker, the values meet the stated lengths, and you selected Deploy after saving. |
+| “Open the configured APP_ORIGIN” | Replace the temporary address with the exact HTTPS address you are visiting. Remove any trailing slash or page path, then Deploy. |
+| Your password is rejected | Use the value of `OWNER_PASSWORD`, not `SESSION_SECRET` or your Cloudflare password. Check for accidental spaces. |
+| Missing database tables or records cannot be saved | Confirm that the deploy command is `npm run deploy` and that its database migration step succeeded. See [deployment troubleshooting](docs/deployment.md#troubleshooting). |
+| The Tasks tab or HAU styling is missing | Check that PR #1 was merged before you created the deployment copy. A copy made earlier needs the customised code added to it. |
+
+## Privacy and maintenance
+
+This is a **single-owner workspace**. Anyone with the owner password, and any approved assistant connection within its permissions, can access the workspace. Separate staff accounts, university SSO and in-app multifactor authentication are not included. Protect your GitHub and Cloudflare accounts with multifactor authentication and keep the R2 attachment bucket private, with public bucket access disabled.
+
+The repository contains source code; your deployed records and attachments live in your Cloudflare account. This storage is not end-to-end encrypted. An authorised assistant receives the records it reads. Keep real records, exports, credentials and private screenshots out of the repository.
+
+Download a JSON backup before updates and keep attachment files separately, because JSON exports contain attachment references rather than the files themselves. Preserve the deployment repository's resource IDs and secrets when updating. See [security and maintenance](SECURITY.md), [data and backups](docs/data-and-backups.md), and [deployment updates](docs/deployment.md#domains-and-updates).
+
+## Connect an assistant, optionally
+
+Once the private app works, add its address followed by `/mcp` to a compatible assistant. For example:
+
+```text
+https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/mcp
+```
+
+Complete PIA's login and review the requested permissions. Start with a request that only reads data:
+
+> Show my unfinished teaching tasks and upcoming research deadlines. Do not change anything.
+
+Review any later saved changes in the app. Manage or revoke connections at `/auth/connections`; logging out of the browser does not revoke an assistant's access. See the [AI connection guide](docs/ai-connection.md) for client requirements and verified limitations.
+
+PIA does not call a model API or require an AI API key. Optional assistant use depends on your chosen provider's account, subscription and support for remote MCP and OAuth. Hosting and assistant subscriptions are separate. PIA does not independently connect to email or Slack or schedule background updates.
+
+## Demo and original project
+
+The [original PIA public demo](https://assafshocher.github.io/pia/) and [original walkthrough](https://github.com/assafshocher/PIA/raw/refs/heads/main/docs/demo.mp4) demonstrate the upstream research workspace with fictional data. They are separate from this fork and your private deployment. Use the screenshots and [task guide](docs/personal-tasks.md) for this version's task tracker.
+
+## Developer setup
+
+**This section is optional and requires software installation. You can complete the browser setup above without it.** The app uses React, TypeScript, Vite, Cloudflare Workers, D1, R2 and `@cloudflare/workers-oauth-provider`.
+
+<details>
+<summary>Local demo and private development</summary>
+
+On a computer where installation is permitted, use Node.js 24 and Git. After the customised version has been merged into `main`:
 
 ```sh
-git clone https://github.com/assafshocher/PIA.git
-cd PIA
+git clone https://github.com/Dr-Joe-Roberts/pia.git
+cd pia
 npm ci
 npm run demo
 ```
 
-Open **http://127.0.0.1:5174/lab**. The command prepares local configuration when absent, applies local migrations, loads fictional records, and starts the app. No Cloudflare account is needed for this local preview.
+Open **http://127.0.0.1:5174/lab#tasks**. This uses fictional records in a local database. Use a fresh clone for the demo so sample records remain separate from real work. See [demo details](demo/README.md).
 
-Use a fresh clone for the demo. The sample is additive and is not meant to be mixed into your own records. Every person, project, venue, result and source link in the demo was invented from scratch. Dates are illustrative. The demo does not contain renamed private records, imported provenance or original audit history, and the local demo command never seeds a remote database. See [demo details](demo/README.md).
-
-## Make it your own
-
-The quickest hosted route is the Cloudflare deployment flow:
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/assafshocher/PIA)
-
-The deployment creates your own Worker, D1 database, private R2 bucket and OAuth storage. Choose a strong owner password and a separate session secret, then set your exact HTTPS app address. **The app stays locked until its configuration is valid.** Follow the [deployment guide](docs/deployment.md), including the short check after setup. The button is a deployment entry point; it does not make your private workspace public.
-
-For a private local workspace instead:
+For a private local workspace in a separate clone:
 
 ```sh
 npm ci
@@ -69,31 +161,13 @@ npm run db:migrate
 npm run dev
 ```
 
-Use a password of at least **16 characters** and an independent random session secret of at least **32 characters**. Keep `.dev.vars` private. If you already ran the demo, use a separate clone for your real workspace.
+The app enforces a minimum of 16 characters for `OWNER_PASSWORD` and 32 for `SESSION_SECRET`; the browser guide recommends longer random values. Keep `.dev.vars` private. Local settings do not configure a deployed Worker.
 
-## Connect an assistant
+`npm run build:demo` produces a separate static preview in `dist-demo/` for the `/pia/` path. Its edits stay in that browser; it has no live MCP connection or attachment uploads. It is not a private server deployment.
 
-After private deployment, add this remote MCP URL to a compatible assistant:
+</details>
 
-```text
-https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev/mcp
-```
-
-Complete PIA's owner login and the OAuth permission screen. Start with a read-only request:
-
-> Read my PIA workspace. Summarize active projects and upcoming deadlines. Do not change anything yet.
-
-Then try a specific action, such as adding a prospective student, recording a project update with its source, or proposing tentative conference targets. Review saved changes in the app. Manage and revoke AI connections at **`/auth/connections`**.
-
-See [AI connection instructions](docs/ai-connection.md) for Codex, ChatGPT, other clients, and what has and has not been verified. Slack and email access come from your assistant's own authorized connections; PIA does not silently connect to either or set up a background schedule.
-
-## Scope and privacy
-
-This release is a **single-owner workspace**. The password holder and approved AI connections have access to that workspace. It does not yet provide separate staff accounts, roles, shared-lab permissions or institution SSO.
-
-Your deployment stores its data in your Cloudflare account. This is not end-to-end encrypted storage: your infrastructure provider operates the storage, and an assistant receives the records you authorize it to read. JSON backups contain private data and do not include attachment binaries. See [security and maintenance](SECURITY.md) and [data portability](docs/data-and-backups.md).
-
-## Development
+Checks for development changes:
 
 ```sh
 npm test
@@ -102,6 +176,6 @@ npm run build
 npm run check:release
 ```
 
-The code uses React, TypeScript, Vite, Cloudflare Workers, D1, R2 and `@cloudflare/workers-oauth-provider`. It does not require the original app's hosting service. See [architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md).
+See [advanced deployment](docs/deployment.md), [architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md). Local checks do not verify the configuration of a live deployment.
 
-MIT licensed. Third-party components retain their own licenses; see [notices](THIRD_PARTY_NOTICES.md).
+The code is MIT licensed; retain the original [licence](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md). The Harper Adams logo remains the university's artwork, as described in [branding](docs/branding.md).

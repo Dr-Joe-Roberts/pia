@@ -29,18 +29,20 @@ A due date does not send a notification. This version does not create recurring 
 
 The task tracker uses the same app and database as PIA. No additional paid service, dependency or database migration is required for this feature.
 
-For an isolated local demonstration, install Node.js 24 and Git, then run:
+For a hosted private workspace, follow the [browser setup in the README](../README.md#set-up-in-your-browser). You do not need to install Node.js or Git. It explains how to deploy this fork with the task tracker and HAU branding.
+
+For an optional isolated local demonstration on a computer where installation is permitted, use Node.js 24 and Git. After the customisations are merged into `main`, run:
 
 ```sh
-git clone --branch codex/personal-task-tracker https://github.com/Dr-Joe-Roberts/pia.git pia-tasks-demo
+git clone https://github.com/Dr-Joe-Roberts/pia.git pia-tasks-demo
 cd pia-tasks-demo
 npm ci
 npm run demo
 ```
 
-Open **http://127.0.0.1:5174/lab#tasks**. This demonstration uses entirely fictional records in a local D1 database. Use a separate clone of this same fork and branch for your real workspace, following the [private local setup](../README.md#make-it-your-own) or [Cloudflare setup](deployment.md). When the deployment guide shows the upstream repository, substitute this fork and branch so you deploy the task-enabled version. The browser-only build (`npm run build:demo`) stores edits in that browser and has no live assistant connection.
+Open **http://127.0.0.1:5174/lab#tasks**. This demonstration uses entirely fictional records in a local D1 database. Use a separate clone of this fork for your real workspace, following the [private local setup](../README.md#developer-setup) or [Cloudflare setup](deployment.md). The browser-only build (`npm run build:demo`) stores edits in that browser and has no live assistant connection.
 
-For an existing private PIA deployment, back up its data, deploy this branch with the normal build/deploy process, and open the Tasks tab. Preserve your existing Cloudflare resource bindings and secrets. If starting from this fork's placeholder configuration, complete the [Cloudflare deployment guide](deployment.md) first. Adding the feature in GitHub alone does not create a running Cloudflare deployment.
+For an existing private PIA deployment, back up its data, apply the task-tracker changes to its deployment repository, deploy with the normal build/deploy process, and open the Tasks tab. Preserve your existing Cloudflare resource bindings and secrets. If starting from this fork's placeholder configuration, complete the [Cloudflare deployment guide](deployment.md) first. Adding the feature in GitHub alone does not create a running Cloudflare deployment.
 
 ## Assistant access
 
