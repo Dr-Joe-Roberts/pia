@@ -90,7 +90,7 @@ Cloudflare's [dashboard instructions for secrets](https://developers.cloudflare.
 ### 5. Sign in and check the app
 
 1. Open your app's address and sign in using **`OWNER_PASSWORD`**.
-2. Select **Tasks → New task**, enter a fictional example such as “Prepare a teaching session”, choose **Teaching**, and select **Create task**. Leave the project field empty.
+2. Select **Tasks → New task with details**, enter a fictional example such as “Prepare a teaching session”, choose **Teaching**, and select **Create task**. Leave the project field empty.
 3. Refresh the page and confirm that the task remains. Complete or archive it when finished.
 4. In a private/incognito browser window, open your app at `/lab`. It should require sign-in. Opening `/api/records?kind=task` or `/api/export` in that signed-out window should return a sign-in error and no private records.
 

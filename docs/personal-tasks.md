@@ -4,27 +4,27 @@ The **Tasks** tab tracks teaching, research, supervision, administration and per
 
 ## Capture, organise and plan
 
-1. Select **Quick capture** from any section, or press **Alt+N**. Enter a title and select **Add to Inbox**.
-2. Open **Tasks → Inbox** and select the task. Add details when you are ready. **New task** opens the full editor directly.
+1. Type into **Add a task to your Inbox…** in the Tasks view and press Enter or select **Add task**. **Quick capture** and **Alt+N** remain available from every section.
+2. Open **Tasks → Inbox** and select the task. Add details when you are ready. **New task with details** opens the full editor directly.
 3. Set **Plan to work on** to choose a working day. Set **Due date** only if there is a deadline. These dates are independent.
-4. Add an effort estimate in minutes. The list's **Plan…** menu can move work to today, tomorrow or next Monday without changing the deadline. Planning removes the task from Inbox.
+4. Add an effort estimate in minutes. Each task's **…** actions menu can move work to today, tomorrow or next Monday without changing the deadline. Planning removes the task from Inbox.
 5. Select **Save changes**. Tick the task in the list when finished; untick it to reopen it.
 
 | View | What appears |
 | --- | --- |
 | My day | Unfinished tasks planned for today, with estimated minutes. |
-| My week | Tasks planned for the current Monday–Sunday week. Select a day or Whole week; each day shows task and effort totals. |
-| Inbox | Unfinished tasks captured for later organisation. Clear **Keep in Inbox** in the editor, or use **Plan…**, to organise them. |
+| My week | Tasks planned for the current Monday–Sunday week. Select a day or Whole week; day counts follow the active filters; the list shows total estimated effort. |
+| Inbox | Unfinished tasks captured for later organisation. Clear **Keep in Inbox** in the editor, or use its **…** planning actions, to organise them. |
 | Follow up | Waiting tasks whose follow-up date is today or earlier. |
 | Due today / Upcoming / Overdue | Unfinished tasks whose deadlines are today / later / earlier. |
 | Waiting | Tasks with status Waiting, including those without follow-up dates. |
 | Completed / All tasks | Retained history / every active task. Archived tasks are in Settings. |
 
-Search combines with category, status, priority, project, module and academic year filters. Tasks without a planned date remain available in All tasks and other applicable views. Totals exclude missing estimates and describe planned effort, not time measured or available calendar capacity. Date boundaries use UK time, including daylight saving.
+The default **All tasks** view keeps the work visible immediately. **My day**, **My week** and **Inbox** are beside it; use **More views** for follow-ups, deadline views, Waiting and Completed. Select **Filters** for category, status, priority, project, module and academic year. A filter count and **Clear filters** stay visible when the controls are collapsed. Search combines with those filters. Tasks without a planned date remain available in All tasks and other applicable views. Totals exclude missing estimates and describe planned effort, not time measured or available calendar capacity. Date boundaries use UK time, including daylight saving.
 
 ## Teaching templates and checklists
 
-In **New task → Start with a template**, choose practical preparation, teaching preparation, marking or module updates. Edit the suggested checklist to fit your work; these are starting points rather than institutional procedures. Add a **Module**, such as Insect Biology, and an **Academic year**, such as 2026/27. Neither requires a project.
+In **New task with details → Start with a template**, choose practical preparation, teaching preparation, marking or module updates. Edit the suggested checklist to fit your work; these are starting points rather than institutional procedures. Add a **Module**, such as Insect Biology, and an **Academic year**, such as 2026/27. Neither requires a project.
 
 Add, edit, tick or remove checklist items in the editor, then save. **Save as template** saves the task title, category, module, notes, estimated effort and an unchecked copy of its checklist. It does not save the task itself. Your template appears in the new-task menu after saving; dates, academic year and project links are chosen for each new task.
 
@@ -66,6 +66,6 @@ The task schema includes `planned_date`, `estimated_minutes`, `module`, `academi
 
 Automated tests cover planning separately from deadlines, UK date boundaries, recurrence and retries, checklist validation, archive integrity, owner isolation, session/CSRF checks, reminder settings and attachment recovery. Browser checks use fictional records; they do not verify a live Cloudflare account's configuration.
 
-![HAU task planner with fictional records](task-planner-desktop.jpg)
+![Simplified HAU task list with fictional records](task-planner-desktop.jpg)
 
 [Mobile task planner](task-planner-mobile.jpg) · [Mobile task editor](task-editor-mobile.jpg)
