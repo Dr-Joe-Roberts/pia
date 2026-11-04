@@ -9,7 +9,7 @@ const migration = readFileSync(new URL("../drizzle/0000_groovy_landau.sql", impo
 
 test("fictional fixture covers workflows, uncertainty and unconnected prospective people", () => {
   assert.equal(validateDemo(fixture), fixture);
-  assert.deepEqual(demoCounts(fixture), { student: 12, project: 12, deadline: 8, deadline_target: 15, project_update: 6, lab_setting: 3, relationships: 21 });
+  assert.deepEqual(demoCounts(fixture), { student: 12, project: 12, deadline: 8, deadline_target: 15, project_update: 6, lab_setting: 3, task: 6, relationships: 21 });
   const candidates = fixture.records.filter(record => record.kind === "student" && record.data.lab_status === "Candidate");
   assert.equal(candidates.length, 2);
   assert.ok(candidates.every(person => !fixture.links.some(link => link.student_id === person.id)));
@@ -64,7 +64,7 @@ test("generated SQL preserves quotes, cannot inject statements, and is repeatabl
     database.exec(migration);
     const sql = demoSql(changed);
     database.exec(sql);
-    assert.equal(database.prepare("SELECT count(*) AS n FROM records").get().n, 56);
+    assert.equal(database.prepare("SELECT count(*) AS n FROM records").get().n, 62);
     const row = database.prepare("SELECT user_id,data_json FROM records WHERE id=?").get(project.id);
     assert.equal(row.user_id, DEMO_OWNER);
     assert.equal(JSON.parse(row.data_json).notes, project.data.notes);
@@ -73,7 +73,7 @@ test("generated SQL preserves quotes, cannot inject statements, and is repeatabl
     const edited = database.prepare("SELECT revision,data_json FROM records WHERE id=?").get(project.id);
     assert.equal(edited.revision, 5);
     assert.equal(JSON.parse(edited.data_json).notes, "Edited locally");
-    assert.equal(database.prepare("SELECT count(*) AS n FROM records").get().n, 56);
+    assert.equal(database.prepare("SELECT count(*) AS n FROM records").get().n, 62);
     assert.equal(database.prepare("SELECT count(*) AS n FROM lab_links").get().n, 21);
     assert.equal(database.prepare("SELECT count(*) AS n FROM records WHERE user_id <> ?").get(DEMO_OWNER).n, 0);
     assert.equal(database.prepare("SELECT count(*) AS n FROM files").get().n, 0);

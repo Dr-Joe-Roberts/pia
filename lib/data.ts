@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { AppError, type AppRecord, type RecordKind, normalizeData, parse, idSchema, mutationKeySchema } from "./domain";
+import { AppError, type AppRecord, type RecordKind, normalizeData, parse, idSchema, mutationKeySchema, taskCompletion } from "./domain";
 import { allowedKinds, assertKind, assertProductionScope, hasLab, isKindAllowed, WORKSPACE_KIND } from "./workspace";
 
 type Row = { id: string; kind: RecordKind; revision: number; data_json: string; created_at: string; updated_at: string; deleted_at: string | null };
@@ -28,7 +28,7 @@ export async function listRecords(user: string, options: { kind?: RecordKind; qu
   if (options.kind) { where.push("kind=?"); args.push(options.kind); }
   if (options.archived === "true") where.push("deleted_at IS NOT NULL"); else if (options.archived !== "all") where.push("deleted_at IS NULL");
   if (options.query) { where.push("data_json LIKE ? ESCAPE '\\'"); args.push(`%${options.query.replace(/[\\%_]/g, "\\$&")}%`); }
-  if (options.date) { where.push("json_extract(data_json,'$.date')=?"); args.push(options.date); }
+  if (options.date) { where.push(options.kind === "task" ? "json_extract(data_json,'$.due_date')=?" : "json_extract(data_json,'$.date')=?"); args.push(options.date); }
   const limit = Math.min(Math.max(options.limit ?? 1000, 1), 2000), offset = Math.max(options.offset ?? 0, 0);
   const { results } = await database().prepare(`SELECT * FROM records WHERE ${where.join(" AND ")} ORDER BY updated_at DESC,id ASC LIMIT ? OFFSET ?`).bind(...args, limit + 1, offset).all<Row>();
   return { records: await enrich(user, results.slice(0, limit).map(fromRow)), has_more: results.length > limit, next_offset: results.length > limit ? offset + limit : null };
@@ -66,11 +66,13 @@ export async function writeRecord(user: string, input: { id?: string; kind?: Rec
   if (!kind) throw new AppError(400, "invalid_kind", "Choose a record kind.");
   assertKind(kind);
   const data = action === "create" || action === "update" ? normalizeData(kind, input.data) : current!.data;
+  if (kind === "task" && (action === "create" || action === "update")) data.completed_at = taskCompletion(data, current?.data ?? null, now);
   if (action === "create" || action === "update") validateMergeSelfReference(kind, data, id);
   const references: { field: "deadline_id" | "project_id" | "merged_into_project_id"; id: string; kind: RecordKind }[] = [];
   if ((kind === "project" || kind === "deadline_target") && data.deadline_id) references.push({ field: "deadline_id", id: String(data.deadline_id), kind: "deadline" });
   if (kind === "project" && data.merged_into_project_id) references.push({ field: "merged_into_project_id", id: String(data.merged_into_project_id), kind: "project" });
   if (kind === "deadline_target" || kind === "project_update") references.push({ field: "project_id", id: String(data.project_id), kind: "project" });
+  if (kind === "task" && data.project_id) references.push({ field: "project_id", id: String(data.project_id), kind: "project" });
   // Preserve unchanged historical references on unrelated edits, including a
   // target missing from an old export. This grants no access to that target:
   // reads remain tenant-scoped, and new/changed references require an active,

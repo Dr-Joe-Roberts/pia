@@ -66,3 +66,11 @@ test('search retains every match for the UI show-all control', () => {
   assert.equal(results[0].results.length, 40);
   assert.equal(new Set(ids(results)).size, 40);
 });
+
+test('standalone tasks are searchable by title, category and notes', () => {
+  const s = state({ tasks: [r('task', 't', { name: 'Mark posters', category: 'Teaching', notes: 'Feedback rubric', status: 'waiting' }), r('task', 'old', { name: 'Mark archived' }, { deleted_at: '2026-01-01' })] });
+  const results = searchLab(buildSearchIndex(s), 'teaching rubric');
+  assert.equal(results[0].label, 'Tasks'); assert.deepEqual(ids(results), ['t']);
+  assert.equal(results[0].results[0].subtitle, 'Teaching · Waiting');
+  assert.deepEqual(ids(searchLab(buildSearchIndex(s), 'mark')), ['t']);
+});

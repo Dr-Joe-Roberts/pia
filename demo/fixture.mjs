@@ -1,5 +1,5 @@
 const DAY = 86_400_000;
-const KINDS = new Set(["student", "project", "deadline", "deadline_target", "project_update", "lab_setting"]);
+const KINDS = new Set(["student", "project", "deadline", "deadline_target", "project_update", "lab_setting", "task"]);
 export const DEMO_OWNER = "owner";
 
 function dateMillis(value) {
@@ -40,6 +40,11 @@ export function validateDemo(fixture) {
     if (data.deadline_id) reference(data.deadline_id, "deadline");
     if (data.merged_into_project_id) reference(data.merged_into_project_id, "project");
     if (["deadline_target", "project_update"].includes(record.kind)) reference(data.project_id, "project");
+    if (record.kind === "task") {
+      if (data.project_id) reference(data.project_id, "project");
+      if (data.due_date) dateMillis(data.due_date);
+      if (!data.name || !["todo", "in_progress", "waiting", "completed"].includes(data.status)) throw new Error("Invalid demo task.");
+    }
     if (record.kind === "deadline_target") {
       reference(data.deadline_id, "deadline");
       if (!["suggested", "tentative", "confirmed", "submitted"].includes(data.status)) throw new Error("Invalid demo target status.");
@@ -72,7 +77,7 @@ export function rebaseDemo(fixture, anchor = new Date().toISOString().slice(0, 1
   const delta = dateMillis(anchor) - dateMillis(fixture.demo.reference_date);
   const years = Number(anchor.slice(0, 4)) - Number(fixture.demo.reference_date.slice(0, 4));
   const result = structuredClone(fixture);
-  const dateKeys = new Set(["date", "start", "end", "created_at", "updated_at", "exported_at"]);
+  const dateKeys = new Set(["date", "due_date", "completed_at", "start", "end", "created_at", "updated_at", "exported_at"]);
   const walk = value => {
     if (Array.isArray(value)) { value.forEach(walk); return; }
     if (!value || typeof value !== "object") return;

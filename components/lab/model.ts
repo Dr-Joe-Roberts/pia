@@ -1,4 +1,4 @@
-export type LabKind = "project" | "student" | "deadline" | "lab_setting" | "deadline_target" | "project_update";
+export type LabKind = "project" | "student" | "deadline" | "lab_setting" | "deadline_target" | "project_update" | "task";
 export type LinkItem = { label?: string; name?: string; url: string };
 export type Option = { label: string; color?: string };
 export type LabData = {
@@ -7,15 +7,16 @@ export type LabData = {
   connected_projects?: string[]; deadline_id?: string; merged_into_project_id?: string; conference_name?: string; date?: string;
   deadline_type?: string; url?: string; time?: string; precision?: "date" | "time"; timezone?: string; setting_type?: string;
   stage?: string; email?: string; next_action?: string; date_status?: string; source?: string; verified_at?: string;
-  project_id?: string; confidence?: string; source_url?: string; outcome?: "pending" | "accepted" | "rejected";
+  category?: string; due_date?: string | null; priority?: string; completed_at?: string | null;
+  project_id?: string | null; confidence?: string; source_url?: string; outcome?: "pending" | "accepted" | "rejected";
   title?: string; summary?: string; sources?: { label: string; url: string }[];
   venue?: string; cycle?: string; topics?: string[]; expected_window?: { start: string; end: string; basis: string };
   options?: Option[]; [key: string]: unknown;
 };
 export type LabRecord = { id: string; kind: LabKind; revision: number; data: LabData; created_at: string; updated_at: string; deleted_at?: string | null };
-export type LabState = { projects: LabRecord[]; students: LabRecord[]; deadlines: LabRecord[]; settings: LabRecord[]; targets: LabRecord[]; updates: LabRecord[] };
-export type Tab = "overview" | "projects" | "people" | "deadlines" | "connections" | "settings";
-export const EMPTY_STATE: LabState = { projects: [], students: [], deadlines: [], settings: [], targets: [], updates: [] };
+export type LabState = { projects: LabRecord[]; students: LabRecord[]; deadlines: LabRecord[]; settings: LabRecord[]; targets: LabRecord[]; updates: LabRecord[]; tasks: LabRecord[] };
+export type Tab = "overview" | "projects" | "people" | "deadlines" | "connections" | "settings" | "tasks";
+export const EMPTY_STATE: LabState = { projects: [], students: [], deadlines: [], settings: [], targets: [], updates: [], tasks: [] };
 export const CANDIDATE_STAGES = [{ value: "contacted", label: "Initial contact" }, { value: "exploring", label: "Exploring fit" }, { value: "applied", label: "Applied" }, { value: "interviewing", label: "Interviewing" }, { value: "accepted", label: "Accepted" }, { value: "active", label: "Active in lab" }, { value: "alumni", label: "Alumni" }, { value: "declined", label: "Not proceeding" }];
 export const PROJECT_WORKFLOW_STATUSES: Option[] = [
   { label: "Done", color: "#657468" },
@@ -143,11 +144,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return body as T;
 }
 export async function loadLab(): Promise<LabState> {
-  const kinds: LabKind[] = ["project", "student", "deadline", "lab_setting", "deadline_target", "project_update"];
+  const kinds: LabKind[] = ["project", "student", "deadline", "lab_setting", "deadline_target", "project_update", "task"];
   const results = await Promise.all(kinds.map(async kind => {
     const records: LabRecord[] = []; let offset = 0;
     for (;;) { const page = await api<{ records: LabRecord[]; has_more?: boolean; next_offset?: number }>(`/api/records?kind=${kind}&limit=2000&offset=${offset}`); records.push(...page.records); if (!page.has_more) break; offset = page.next_offset ?? offset + page.records.length; }
     return records;
   }));
-  return { projects: results[0], students: results[1], deadlines: results[2], settings: results[3], targets: results[4], updates: results[5] };
+  return { projects: results[0], students: results[1], deadlines: results[2], settings: results[3], targets: results[4], updates: results[5], tasks: results[6] };
 }

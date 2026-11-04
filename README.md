@@ -16,6 +16,7 @@ The live ChatGPT update uses a private Sites-hosted demo with Sites-managed auth
 
 ## What you can do
 
+- **Track your own workload.** Keep teaching, marking, supervision, administration and personal tasks in one place. Tasks need only a title; categories, due dates, priorities and project links are optional. See the [personal task guide](docs/personal-tasks.md).
 - **See the whole lab.** A compact, three-column research graph with distinct people, projects and deadlines; meaningful connection styles; sorting; and independent filters for each kind of record.
 - **Move through the relationships.** Open connected records, follow their history, and add people–project or project–deadline links without leaving the map.
 - **Keep plans honest.** Distinguish AI suggestions, tentative targets, confirmed plans and actual submissions. Keep earlier rejections visible after a later acceptance.

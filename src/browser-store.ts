@@ -1,10 +1,12 @@
+import { recordId } from "../lib/record-id.ts";
 import type { LabRecord, LabKind, LabData } from '../components/lab/model';
+import { TASK_PRIORITIES, TASK_STATUSES, taskCompletion } from '../lib/tasks.ts';
 
 type Link = { project_id: string; student_id: string };
 type Snapshot = { records: LabRecord[]; links: Link[] };
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const DEMO_STORAGE_KEY = 'pia-public-demo-v1';
-const kinds = new Set(['project', 'student', 'deadline', 'deadline_target', 'project_update', 'lab_setting']);
+const kinds = new Set(['project', 'student', 'deadline', 'deadline_target', 'project_update', 'lab_setting', 'task']);
 
 /** Each visitor owns a browser-local sandbox. This adapter never contacts a server. */
 export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
@@ -27,12 +29,25 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
     if (record.kind === 'student') result.data.connected_projects = state.links.filter(l => l.student_id === record.id && state.records.some(r => r.id === l.project_id && !r.deleted_at)).map(l => l.project_id);
     return result;
   }
-  function validate(record: LabRecord, state: Snapshot) {
+  function validate(record: LabRecord, state: Snapshot, previous?: LabData, importing = false) {
     if (!kinds.has(record.kind)) throw new Error('Unsupported PIA record type.');
     const d = record.data;
     if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('Record details are required.');
     if (['project', 'student'].includes(record.kind) && !String(d.name || '').trim()) throw new Error('Add a name.');
     const reference = (id: unknown, kind: string) => state.records.some(r => r.id === id && r.kind === kind && !r.deleted_at);
+    if (record.kind === 'task') {
+      d.name = String(d.name || '').trim();
+      if (!d.name || d.name.length > 240) throw new Error('Enter a task title of up to 240 characters.');
+      d.category = String(d.category || '').trim() || 'General';
+      if (d.category.length > 240) throw new Error('Use a category of up to 240 characters.');
+      d.status ??= 'todo'; d.priority ??= 'normal'; d.notes ??= '';
+      if (!TASK_STATUSES.includes(d.status as typeof TASK_STATUSES[number])) throw new Error('Choose a task status.');
+      if (!TASK_PRIORITIES.includes(d.priority as typeof TASK_PRIORITIES[number])) throw new Error('Choose a task priority.');
+      d.due_date ||= null; d.project_id ||= null;
+      if (d.due_date && (!/^\d{4}-\d{2}-\d{2}$/.test(d.due_date) || !Number.isFinite(Date.parse(d.due_date)) || new Date(d.due_date).toISOString().slice(0, 10) !== d.due_date)) throw new Error('Choose a real calendar date.');
+      if (d.project_id && !importing && d.project_id !== previous?.project_id && !reference(d.project_id, 'project')) throw new Error('Choose an active project or leave the task standalone.');
+      if (d.status !== 'completed') d.completed_at = null;
+    }
     if (['deadline_target', 'project_update'].includes(record.kind) && !reference(d.project_id, 'project')) throw new Error('Choose an active project.');
     if (record.kind === 'deadline_target') {
       if (!reference(d.deadline_id, 'deadline')) throw new Error('Choose an active deadline.');
@@ -62,15 +77,21 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
         result = { records: records.slice(offset, offset + limit), has_more: records.length > offset + limit, next_offset: offset + limit };
       } else if (url.pathname === '/api/records' && method === 'POST') {
         const now = new Date().toISOString();
-        const record = { id: crypto.randomUUID(), kind: body.kind as LabKind, data: structuredClone(body.data) as LabData, revision: 1, created_at: now, updated_at: now, deleted_at: null };
-        validate(record, state); state.records.push(record); save(state); result = { record: expanded(record, state) };
+        const record = { id: recordId(), kind: body.kind as LabKind, data: structuredClone(body.data) as LabData, revision: 1, created_at: now, updated_at: now, deleted_at: null };
+        validate(record, state);
+        if (record.kind === 'task') record.data.completed_at = taskCompletion(record.data, null, now) as string | null;
+        state.records.push(record); save(state); result = { record: expanded(record, state) };
       } else if (url.pathname.startsWith('/api/records/')) {
         const [, , , id, action] = url.pathname.split('/');
         const record = find(id);
         if (method === 'GET') result = { record: expanded(record, state) };
         else {
           current(record);
-          if (method === 'PATCH' && !action) { record.data = structuredClone(body.data); validate(record, state); }
+          if (method === 'PATCH' && !action) {
+            const previous = record.data;
+            record.data = structuredClone(body.data); validate(record, state, previous);
+            if (record.kind === 'task') record.data.completed_at = taskCompletion(record.data, previous, new Date().toISOString()) as string | null;
+          }
           else if (method === 'DELETE' && !action) record.deleted_at = new Date().toISOString();
           else if (method === 'POST' && action === 'restore') record.deleted_at = null;
           else throw new Error('Unsupported demo action.');
@@ -99,7 +120,7 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
           // Validate references after every record has been added, independent of backup ordering.
           state.records.push(record); created++;
         }
-        for (const record of state.records) if (!record.deleted_at) validate(record, state);
+        for (const record of state.records) if (!record.deleted_at) validate(record, state, undefined, true);
         if (Array.isArray(body.links)) for (const l of body.links) {
           if (state.records.some(r => r.id === l.project_id && r.kind === 'project') && state.records.some(r => r.id === l.student_id && r.kind === 'student') && !state.links.some(prior => prior.project_id === l.project_id && prior.student_id === l.student_id)) state.links.push({ project_id: l.project_id, student_id: l.student_id });
         }

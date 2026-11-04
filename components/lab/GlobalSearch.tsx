@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, CalendarDays, FolderKanban, Search, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckSquare2, FolderKanban, Search, Users, X } from "lucide-react";
 import { buildSearchIndex, searchLab, type SearchKind, type SearchResult } from "./global-search";
 import { type LabRecord, type LabState } from "./model";
 import "./global-search.css";
 
-const icons = { student: Users, project: FolderKanban, deadline: CalendarDays };
-const typeLabels: Record<SearchKind, string> = { student: "Person", project: "Project", deadline: "Deadline" };
+const icons = { student: Users, project: FolderKanban, deadline: CalendarDays, task: CheckSquare2 };
+const typeLabels: Record<SearchKind, string> = { student: "Person", project: "Project", deadline: "Deadline", task: "Task" };
 
 export default function GlobalSearch({ state, open, loading = false }: { state: LabState; open: (record: LabRecord) => void; loading?: boolean }) {
   const [query, setQuery] = useState("");
@@ -68,7 +68,7 @@ export default function GlobalSearch({ state, open, loading = false }: { state: 
   return <div className="lab-global-search" ref={wrapper}>
     <div className={`lab-global-search-field ${expanded ? "is-open" : ""}`}>
       <Search size={16} aria-hidden="true" />
-      <input ref={input} role="combobox" aria-label="Search all lab records" aria-autocomplete="list" aria-expanded={expanded} aria-controls={`${id}-results`} aria-activedescendant={expanded ? activeId : undefined} autoComplete="off" spellCheck={false} placeholder="Search lab…" value={query} onFocus={show} onChange={event => { setQuery(event.target.value); setActive(-1); setShowAll(false); show(); }} onKeyDown={onKeyDown} onBlur={event => { if (!panel.current?.contains(event.relatedTarget) && !wrapper.current?.contains(event.relatedTarget)) setExpanded(false); }} />
+      <input ref={input} role="combobox" aria-label="Search all lab records" aria-autocomplete="list" aria-expanded={expanded} aria-controls={`${id}-results`} aria-activedescendant={expanded ? activeId : undefined} autoComplete="off" spellCheck={false} placeholder="Search workspace…" value={query} onFocus={show} onChange={event => { setQuery(event.target.value); setActive(-1); setShowAll(false); show(); }} onKeyDown={onKeyDown} onBlur={event => { if (!panel.current?.contains(event.relatedTarget) && !wrapper.current?.contains(event.relatedTarget)) setExpanded(false); }} />
       {query ? <button type="button" aria-label="Clear lab search" onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(""); setActive(-1); setShowAll(false); input.current?.focus(); show(); }}><X size={14} /></button> : <kbd title="Command or Control K">⌘ K</kbd>}
     </div>
     {expanded && createPortal(<div ref={panel} className="lab-global-search-panel" style={position}>

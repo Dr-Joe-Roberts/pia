@@ -1,0 +1,73 @@
+.pia-tasks { max-width: 1280px; margin: 0 auto; }
+.pia-task-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0; }
+.pia-task-summary > button { display: flex; align-items: center; gap: 14px; text-align: left; border: 1px solid #dce5df; border-radius: 12px; padding: 18px 20px; background: #fff; color: #477166; cursor: pointer; }
+.pia-task-summary > button:hover { background: #f5faf7; border-color: #a7c7b8; }
+.pia-task-summary span { display: flex; flex-direction: column; gap: 2px; color: #5f7169; font-size: 13px; }
+.pia-task-summary strong { font-size: 26px; line-height: 1.15; color: #243e34; font-weight: 650; }
+.pia-task-summary .has-overdue { background: #fff9f5; border-color: #f0d8c7; color: #ad592b; }
+.pia-task-summary .has-overdue strong { color: #a94c25; }
+.pia-task-views { display: flex; flex-wrap: wrap; gap: 5px; border-bottom: 1px solid #dce5df; margin: 4px 0 18px; padding-bottom: 10px; }
+.pia-task-views button { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: #65736c; padding: 9px 12px; border-radius: 7px; font-size: 13px; cursor: pointer; }
+.pia-task-views button[aria-pressed="true"] { color: #176b52; background: #e8f2ec; font-weight: 650; }
+.pia-task-views span { font-size: 11px; background: #fff; border: 1px solid #dfe7e1; border-radius: 5px; padding: 1px 5px; }
+.pia-task-filters { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.pia-task-filters select, .pia-task-list-heading select { border: 1px solid #dce5df; background: #fff; color: #465d51; border-radius: 7px; padding: 9px 27px 9px 10px; font-size: 12px; max-width: 230px; min-height: 38px; }
+.pia-task-search { display: flex; flex: 1 1 240px; align-items: center; gap: 8px; background: #fff; border: 1px solid #dce5df; border-radius: 7px; padding: 0 11px; color: #809087; }
+.pia-task-search input { width: 100%; min-width: 0; border: 0; padding: 9px 0; background: transparent; outline: none; font-size: 13px; }
+.pia-task-search:focus-within { outline: 2px solid #148575; outline-offset: 2px; }
+.pia-task-list-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #718278; font-size: 12px; margin: 16px 0 10px; }
+.pia-task-list-heading > div { display: flex; align-items: center; gap: 12px; }
+.pia-task-list { list-style: none; margin: 0; padding: 0; border: 1px solid #dce5df; background: white; border-radius: 12px; overflow: hidden; }
+.pia-task-row { display: grid; grid-template-columns: 34px minmax(160px, 1fr) 100px 70px 185px; align-items: center; gap: 14px; padding: 18px 16px; border-bottom: 1px solid #e9eeea; }
+.pia-task-row:last-child { border-bottom: none; }
+.pia-task-row:hover { background: #fbfcfa; }
+.pia-task-check { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none; background: transparent; color: #9aaba1; cursor: pointer; border-radius: 6px; }
+.pia-task-check:hover { color: #148575; background: #edf6f0; }
+.pia-task-check[aria-pressed="true"] { color: #148575; }
+.pia-task-check:disabled { cursor: wait; opacity: .55; }
+.pia-task-main { min-width: 0; border: 0; background: transparent; text-align: left; cursor: pointer; padding: 4px 0; }
+.pia-task-main > strong { display: block; color: #263e32; font-weight: 600; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.pia-task-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 10px; margin-top: 5px; font-size: 11px; color: #77877d; }
+.pia-task-meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.pia-task-category { border-radius: 4px; background: #f0f3ed; color: #607355; padding: 2px 7px; }
+.pia-task-note { max-width: 280px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: inline-block !important; }
+.pia-task-status { justify-self: start; border-radius: 5px; background: #f0f3f1; color: #61736a; padding: 4px 8px; font-size: 11px; white-space: nowrap; }
+.pia-task-status.status-in_progress { background: #edf3fb; color: #4371a0; }
+.pia-task-status.status-waiting { background: #fff4df; color: #996b20; }
+.pia-task-status.status-completed { background: #eaf4ec; color: #3b7e52; }
+.pia-task-priority, .pia-task-due { display: flex; align-items: center; gap: 5px; color: #7c8b82; font-size: 11px; }
+.pia-task-priority.priority-high { color: #b25130; font-weight: 600; }
+.pia-task-due { justify-self: end; white-space: nowrap; }
+.pia-task-due.is-overdue { color: #b25130; }
+.pia-task-row.is-complete .pia-task-main > strong { text-decoration: line-through; color: #839087; }
+.pia-task-footnote { color: #849188; font-size: 11px; margin-top: 18px; line-height: 1.7; }
+.pia-task-fields { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 18px; }
+.pia-task-fields > .lab-text-button { justify-self: start; }
+.pia-task-form { min-height: 0; display: flex; flex-direction: column; }
+.pia-task-form .lab-dialog-body { overflow-y: auto; }
+.pia-task-back { margin-bottom: 18px; }
+.pia-tasks button:focus-visible, .pia-task-form button:focus-visible { outline: 2px solid #148575; outline-offset: 3px; }
+@media (max-width: 1050px) {
+  .pia-task-row { grid-template-columns: 30px minmax(130px, 1fr) 95px; gap: 7px 12px; }
+  .pia-task-due { grid-column: 2; justify-self: start; }
+  .pia-task-priority { grid-column: 3; grid-row: 2; }
+}
+@media (max-width: 600px) {
+  .pia-task-summary { gap: 7px; margin: 18px 0; }
+  .pia-task-summary > button { padding: 12px 10px; gap: 8px; }
+  .pia-task-summary > button > svg { display: none; }
+  .pia-task-summary strong { font-size: 23px; }
+  .pia-task-summary span { font-size: 11px; }
+  .pia-task-views { gap: 3px; }
+  .pia-task-views button { padding: 8px; font-size: 12px; }
+  .pia-task-filters select { flex: 1 1 44%; max-width: 100%; min-width: 0; }
+  .pia-task-search { flex-basis: 100%; }
+  .pia-task-row { grid-template-columns: 28px minmax(0, 1fr) auto; padding: 13px 10px; gap: 6px 8px; }
+  .pia-task-meta { gap: 5px; }
+  .pia-task-note { display: none !important; }
+  .pia-task-list-heading { align-items: flex-start; }
+  .pia-task-list-heading > div { flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+  .pia-task-list-heading select { max-width: 180px; }
+  .pia-task-form .lab-dialog-footer { flex-wrap: wrap; gap: 12px; }
+  .pia-task-form .lab-save-state { display: none; }
+}

@@ -16,11 +16,13 @@ flowchart LR
 
 Vite builds the React/TypeScript interface. The research map, list views, filters, search and record editors live in `components/lab/`. The Worker serves assets and dispatches explicit API, authentication and MCP routes. No server-side React framework or original hosting-service identity is required.
 
-The app is scoped to lab records: people, projects, deadlines, submission targets, project updates and configurable labels. Some shared validation/import code retains support for legacy record formats; the Lab workspace scope rejects unrelated record kinds through the public API.
+The app is scoped to lab records: people, projects, deadlines, submission targets, project updates, personal tasks and configurable labels. Some shared validation/import code retains support for legacy record formats; the Lab workspace scope rejects unrelated record kinds through the public API.
 
 ## Persistence
 
 The `DB` binding is a Cloudflare D1 database. Records carry IDs, revision numbers, timestamps and archive markers. People–project relationships live in a normalized table. Deadline targets are records of their own, keeping plans and actual outcomes distinct.
+
+Personal tasks use the existing records table, so they require no extra migration or storage service. A task can stand alone or optionally reference an owned project. Its due date is separate from a research deadline. The server records completion timestamps; reopening clears the timestamp. The UI uses the Europe/London calendar for task views.
 
 Mutations use revision checks and idempotency keys. Server-side transactions protect relationships and repeated requests. An audit event records saved changes. Archiving retains the record and its relationships for restoration.
 

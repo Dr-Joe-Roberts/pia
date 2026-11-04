@@ -42,3 +42,21 @@ test('failed imports and storage failures never report a successful save', async
   await assert.rejects(broken.request('/api/records', write({ kind: 'student', data: { name: 'Demo Person' } })), /could not save/);
   await assert.rejects(store.request('/api/files', { method: 'POST' }), /own PIA deployment/);
 });
+
+test('standalone tasks persist, complete, reopen and round-trip in browser backups', async () => {
+  const { store, storage } = sandbox();
+  const { record: task } = await store.request('/api/records', write({ kind: 'task', data: { name: 'Prepare teaching', category: 'Teaching', due_date: '' } }));
+  assert.equal(task.data.project_id, null); assert.equal(task.data.due_date, null);
+  const { record: done } = await store.request(`/api/records/${task.id}`, write({ data: { ...task.data, status: 'completed' }, expected_revision: task.revision }, 'PATCH'));
+  assert.ok(done.data.completed_at);
+  const { record: edited } = await store.request(`/api/records/${task.id}`, write({ data: { ...done.data, notes: 'Saved completion', completed_at: null }, expected_revision: done.revision }, 'PATCH'));
+  assert.equal(edited.data.completed_at, done.data.completed_at);
+  assert.equal((await createBrowserStore(fixture, storage).request(`/api/records/${task.id}`)).record.data.notes, 'Saved completion');
+  const { record: reopened } = await store.request(`/api/records/${task.id}`, write({ data: { ...edited.data, status: 'waiting' }, expected_revision: edited.revision }, 'PATCH'));
+  assert.equal(reopened.data.completed_at, null);
+  const backup = await store.request('/api/export'), fresh = sandbox();
+  await fresh.store.request('/api/import', write(backup));
+  assert.equal((await fresh.store.request(`/api/records/${task.id}`)).record.data.category, 'Teaching');
+  await assert.rejects(store.request('/api/records', write({ kind: 'task', data: { name: 'Invalid', due_date: '2026-02-30' } })), /calendar date/);
+  await assert.rejects(store.request(`/api/records/${task.id}`, write({ data: task.data, expected_revision: 1 }, 'PATCH')), /another tab/);
+});

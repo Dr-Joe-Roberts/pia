@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { trustedAuth } from "./auth-context.ts";
+import { TASK_STATUSES, TASK_PRIORITIES } from "./tasks.ts";
+export { taskCompletion } from "./tasks.ts";
 
 export class AppError extends Error {
   status: number; code: string; details?: unknown;
   constructor(status: number, code: string, message: string, details?: unknown) { super(message); this.status = status; this.code = code; this.details = details; }
 }
-export const kinds = ["project", "student", "deadline", "deadline_target", "project_update", "lab_setting", "meal", "saved_dish", "nutrition_goal", "nutrition_profile", "measurement", "daily_expenditure", "daily_checkin", "user_fact", "workout_schedule"] as const;
+export const kinds = ["project", "student", "deadline", "deadline_target", "project_update", "lab_setting", "task", "meal", "saved_dish", "nutrition_goal", "nutrition_profile", "measurement", "daily_expenditure", "daily_checkin", "user_fact", "workout_schedule"] as const;
 export type RecordKind = typeof kinds[number];
 export type AppRecord = { id: string; kind: RecordKind; revision: number; data: Record<string, unknown>; created_at: string; updated_at: string; deleted_at: string | null };
 export const idSchema = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
@@ -41,6 +43,7 @@ const meal = z.object({ name: short.min(1), consumed_at: z.string().datetime({ o
 const optionalMeasure = z.number().finite().nonnegative().max(10000).nullish();
 const expectedWindow = z.object({ start: dateSchema, end: dateSchema, basis: z.string().trim().min(1).max(2000) }).strict().refine(v => v.start <= v.end, "The expected window must end on or after its start");
 const schemas: Record<RecordKind, z.ZodTypeAny> = {
+  task: z.object({ ...base, category: short.default("General"), status: z.enum(TASK_STATUSES).default("todo"), priority: z.enum(TASK_PRIORITIES).default("normal"), due_date: z.preprocess(v => v === "" ? null : v, dateSchema.nullable().default(null)), project_id: z.preprocess(v => v === "" ? null : v, idSchema.nullable().default(null)), completed_at: z.string().datetime({ offset: true }).nullable().default(null) }),
   project: z.object({ ...base, status: short.default("Planning"), deadline_id: idSchema.nullish().or(z.literal("")), merged_into_project_id: idSchema.optional(), connected_students: z.array(idSchema).optional() }),
   student: z.object({ ...base, degree: short.default(""), lab_status: short.default("Active"), stage: short.default(""), email: z.string().email().or(z.literal("")).optional(), next_action: z.string().max(2000).default(""), connected_projects: z.array(idSchema).optional() }),
   deadline: z.object({ conference_name: short.min(1), venue: short.optional(), cycle: z.preprocess(v => typeof v === "number" && Number.isFinite(v) ? String(v) : v, short.optional()), topics: z.array(short).max(30).optional(), expected_window: expectedWindow.optional(), date: dateSchema.or(z.literal("")).nullable().optional(), date_status: z.enum(["confirmed", "estimated", "tba"]).default("confirmed"), deadline_type: z.enum(["final", "abstract", "other"]).default("final"), url: safeUrl.default(""), notes: long.default(""), timezone: deadlineTimezone, time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(), precision: z.enum(["date", "time"]).default("date"), source: z.string().max(2000).optional(), verified_at: z.string().datetime({ offset: true }).optional() }).refine(v => v.date_status === "tba" || Boolean(v.date) || v.date_status === "estimated" && Boolean(v.expected_window), "Confirmed deadlines need an exact date; estimated deadlines need a date or expected window; otherwise mark TBA").refine(v => v.precision !== "time" || Boolean(v.time) && v.timezone !== "unknown", "Time precision requires a recorded time and a known timezone"),
@@ -65,6 +68,10 @@ export function parse<S extends z.ZodTypeAny>(schema: S, value: unknown): z.outp
 export function normalizeData(kind: RecordKind, value: unknown): Record<string, unknown> {
   const data = parse(schemas[kind], value) as Record<string, unknown>;
   delete data.connected_students; delete data.connected_projects;
+  if (kind === "task") {
+    if (!data.category) data.category = "General";
+    if (data.status !== "completed") data.completed_at = null;
+  }
   if (kind === "deadline" && (data.date_status === "tba" || data.date_status === "estimated" && !data.date && data.expected_window)) { data.date = null; delete data.time; data.precision = "date"; }
   if (kind === "meal" || kind === "saved_dish") {
     Object.assign(data, calculateNutrition(data.ingredients as Ingredient[]));

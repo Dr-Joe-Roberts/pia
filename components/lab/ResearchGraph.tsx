@@ -1,4 +1,5 @@
 "use client";
+import { recordId } from "../../lib/record-id.ts";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ArrowRight, CalendarDays, Check, ChevronDown, CircleHelp, FolderKanban, Grip, Link2, LoaderCircle, Maximize2, Plus, RotateCcw, SlidersHorizontal, Users, X } from "lucide-react";
 import { api, ApiError, CANDIDATE_STAGES, deadlineDateLabel, deadlineSortDate, graphDeadlineDateLabel, shortDeadlineName, initials, optionsFor, personStatusLabel, personStatusValue, personStatusDescription, projectStatusValue, type LabRecord, type LabState } from "./model";
@@ -130,7 +131,7 @@ export default function ResearchGraph({ state, open, refresh, notify }: Props) {
       if (mode.relation === "target" && project.data.deadline_id === opposite.id) throw new ApiError("This is already the project's primary deadline. Open the record to review its target commitment.", 409);
       const payload = mode.relation === "team" ? { ...pair, linked: true } : { kind: "deadline_target", data: { ...pair, status: mode.status, ...(mode.status === "submitted" && mode.outcome ? { outcome: mode.outcome } : {}), notes: mode.notes.trim() } };
       const content = JSON.stringify(payload);
-      if (retry.current?.content !== content) retry.current = { content, key: crypto.randomUUID() };
+      if (retry.current?.content !== content) retry.current = { content, key: recordId() };
       await api(mode.relation === "team" ? "/api/lab/link" : "/api/records", { method: "POST", body: JSON.stringify({ ...payload, idempotency_key: retry.current.key }) });
       saved = true; setMode(null); setMessage(`${source.name} connected to ${other.name}.`); notify?.("Connection saved."); await refresh();
     } catch (failure) {
