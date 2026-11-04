@@ -94,6 +94,10 @@ Cloudflare's [dashboard instructions for secrets](https://developers.cloudflare.
 3. Refresh the page and confirm that the task remains. Complete or archive it when finished.
 4. In a private/incognito browser window, open your app at `/lab`. It should require sign-in. Opening `/api/records?kind=task` or `/api/export` in that signed-out window should return a sign-in error and no private records.
 
+On a phone or tablet, use **Menu** beside the HAU logo for navigation, workspace search, reminders and quick capture.
+
+Completed tasks leave the active lists but remain available under **Tasks → Completed**. For longer-term storage, use **… → Archive task**; **Tasks → Archive** lets you read the retained details and restore the task when needed. Restoring a completed task keeps it completed.
+
 Before entering real student or institutional information, confirm that this hosting arrangement is acceptable under HAU's data policies.
 
 ## If setup does not work

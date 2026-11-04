@@ -5,11 +5,11 @@ export const TASK_PRIORITIES = ["low", "normal", "high"] as const;
 export const TASK_CATEGORIES = ["General", "Teaching", "Research", "Supervision", "Administration", "Personal"] as const;
 export const TASK_STATUS_LABELS: Record<string, string> = { todo: "To do", in_progress: "In progress", waiting: "Waiting", completed: "Completed" };
 export const TASK_PRIORITY_LABELS: Record<string, string> = { low: "Low", normal: "Normal", high: "High" };
-export type TaskView = "my_day" | "my_week" | "inbox" | "follow_up" | "all" | "today" | "upcoming" | "overdue" | "waiting" | "completed";
+export type TaskView = "my_day" | "my_week" | "inbox" | "follow_up" | "all" | "today" | "upcoming" | "overdue" | "waiting" | "completed" | "archived";
 export const TASK_VIEWS: { id: TaskView; label: string }[] = [
-  { id: "my_day", label: "My day" }, { id: "my_week", label: "My week" }, { id: "inbox", label: "Inbox" }, { id: "follow_up", label: "Follow up" }, { id: "all", label: "All tasks" }, { id: "today", label: "Due today" },
+  { id: "my_day", label: "My day" }, { id: "my_week", label: "My week" }, { id: "inbox", label: "Inbox" }, { id: "follow_up", label: "Follow up" }, { id: "all", label: "Active tasks" }, { id: "today", label: "Due today" },
   { id: "upcoming", label: "Upcoming" }, { id: "overdue", label: "Overdue" },
-  { id: "waiting", label: "Waiting" }, { id: "completed", label: "Completed" },
+  { id: "waiting", label: "Waiting" }, { id: "completed", label: "Completed" }, { id: "archived", label: "Archive" },
 ];
 type TaskLike = { id: string; deleted_at?: string | null; updated_at: string; data: PlanningData & {
   name?: string; notes?: string; category?: string; status?: string; priority?: string;
@@ -20,9 +20,10 @@ export function taskToday(now = new Date(), timezone = "Europe/London") {
   return ["year", "month", "day"].map(key => parts.find(part => part.type === key)?.value).join("-");
 }
 export function taskInView(task: TaskLike, view: TaskView, today: string) {
+  if (view === "archived") return Boolean(task.deleted_at);
   if (task.deleted_at) return false;
   const done = task.data.status === "completed", due = task.data.due_date;
-  if (view === "all") return true;
+  if (view === "all") return !done;
   if (view === "completed") return done;
   if (done) return false;
   if (view === "my_day") return task.data.planned_date === today;

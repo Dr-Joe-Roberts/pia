@@ -2,13 +2,15 @@
 
 The **Tasks** tab tracks teaching, research, supervision, administration and personal work. A project is optional. A lecture to prepare or expenses to submit can stand alone.
 
+On a phone or tablet, select **Menu** in the compact HAU header for workspace search, navigation, reminders and quick capture. Choosing a section closes the menu.
+
 ## Capture, organise and plan
 
 1. Type into **Add a task to your Inbox…** in the Tasks view and press Enter or select **Add task**. **Quick capture** and **Alt+N** remain available from every section.
 2. Open **Tasks → Inbox** and select the task. Add details when you are ready. **New task with details** opens the full editor directly.
 3. Set **Plan to work on** to choose a working day. Set **Due date** only if there is a deadline. These dates are independent.
 4. Add an effort estimate in minutes. Each task's **…** actions menu can move work to today, tomorrow or next Monday without changing the deadline. Planning removes the task from Inbox.
-5. Select **Save changes**. Tick the task in the list when finished; untick it to reopen it.
+5. Select **Save changes**. Tick the task in the list when finished. It moves out of your active lists into **Completed**, where you can view it or untick it to reopen it.
 
 | View | What appears |
 | --- | --- |
@@ -18,9 +20,17 @@ The **Tasks** tab tracks teaching, research, supervision, administration and per
 | Follow up | Waiting tasks whose follow-up date is today or earlier. |
 | Due today / Upcoming / Overdue | Unfinished tasks whose deadlines are today / later / earlier. |
 | Waiting | Tasks with status Waiting, including those without follow-up dates. |
-| Completed / All tasks | Retained history / every active task. Archived tasks are in Settings. |
+| Active tasks | All unfinished, unarchived tasks. This is the default view. |
+| Completed | Finished tasks, with their completion date, notes and checklists retained. |
+| Archive | Archived tasks. Open one to read its details without restoring it. |
 
-The default **All tasks** view keeps the work visible immediately. **My day**, **My week** and **Inbox** are beside it; use **More views** for follow-ups, deadline views, Waiting and Completed. Select **Filters** for category, status, priority, project, module and academic year. A filter count and **Clear filters** stay visible when the controls are collapsed. Search combines with those filters. Tasks without a planned date remain available in All tasks and other applicable views. Totals exclude missing estimates and describe planned effort, not time measured or available calendar capacity. Date boundaries use UK time, including daylight saving.
+The default **Active tasks** view keeps the work visible immediately. **My day**, **My week** and **Inbox** are beside it; use **More views** for follow-ups, deadline views, Waiting, Completed and Archive. **Completed** and **Archive** are also directly available beside the task count. Select **Filters** for category, status, priority, project, module and academic year. A filter count and **Clear filters** stay visible when the controls are collapsed. Search combines with those filters. Tasks without a planned date remain available in Active tasks and other applicable views. Totals exclude missing estimates and describe planned effort, not time measured or available calendar capacity. Date boundaries use UK time, including daylight saving.
+
+## Completed tasks and the archive
+
+Completing a task automatically removes it from Active tasks, My day, My week and Inbox. It is retained in **Completed**, with its notes, checklist and completion date. Select **Completed** beside the task count, or under **More views**, to find it. Untick a completed task to reopen it and return it to Active tasks.
+
+For longer-term storage, open the completed task's **… → Archive task** action. **Archive** lets you search and filter archived tasks, open their full details in a read-only view, and select **Restore task**. Archiving does not permanently delete the task. Restoring preserves its status: a completed task returns to Completed, and an unfinished task returns to Active tasks. Restoring does not generate a recurring successor. You can also archive an unfinished task from its editor or restore records from **Settings → Archive**.
 
 ## Teaching templates and checklists
 
@@ -46,7 +56,7 @@ Optional browser notifications use a generic message to avoid exposing task titl
 
 ## Records, backups and deployment
 
-Tasks appear in global search and in a linked project's **Linked tasks** section. Archive a task from its editor; restore it in **Settings → Archive**. Complete backups include tasks, templates and completion history: see [data and backups](data-and-backups.md).
+Tasks appear in global search and in a linked project's **Linked tasks** section. Archive a task from its editor or a completed task from its row menu. View and restore archived tasks directly in **Tasks → Archive**; **Settings → Archive** also provides restoration. Complete backups include tasks, templates and completion history: see [data and backups](data-and-backups.md).
 
 Use the [browser setup guide](../README.md#set-up-in-your-browser). No local Node.js or Git installation is needed. This update uses the existing Cloudflare resources, with no new package dependency or external service. It adds database migration **0002_planning.sql** and an hourly reminder trigger. The normal **npm run deploy** command in Cloudflare applies the migration. Preserve existing resource bindings and secrets when updating a deployment copy.
 
@@ -68,4 +78,4 @@ Automated tests cover planning separately from deadlines, UK date boundaries, re
 
 ![Simplified HAU task list with fictional records](task-planner-desktop.jpg)
 
-[Mobile task planner](task-planner-mobile.jpg) · [Mobile task editor](task-editor-mobile.jpg)
+[Mobile task view](task-planner-mobile.jpg) · [Mobile task editor](task-editor-mobile.jpg)

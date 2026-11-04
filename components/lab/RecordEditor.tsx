@@ -15,7 +15,7 @@ import { withoutContextHeading } from "./preview";
 
 export function Modal({ title, subtitle, children, onClose, wide = false }: { title: string; subtitle?: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => { const dialog = ref.current; dialog?.showModal(); const previous = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { dialog?.close(); document.body.style.overflow = previous; }; }, []);
+  useEffect(() => { const dialog = ref.current, previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null; dialog?.showModal(); const previous = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { dialog?.close(); document.body.style.overflow = previous; if (previousFocus?.isConnected && !document.querySelector("dialog[open]")) previousFocus.focus({ preventScroll: true }); }; }, []);
   return <dialog ref={ref} className={`lab-dialog ${wide ? "lab-dialog-wide" : ""}`} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }} aria-labelledby="lab-dialog-title">
     <div className="lab-dialog-header"><div><p className="lab-eyebrow">PIA</p><h2 id="lab-dialog-title">{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button className="lab-icon-button" type="button" aria-label="Close dialog" onClick={onClose}><X size={20} /></button></div>
     {children}

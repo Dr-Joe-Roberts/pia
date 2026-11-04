@@ -61,3 +61,30 @@ body{background:#f5f7fa;color:var(--hau-ink)}
 }
 @media(max-width:400px){.hau-logo{width:100px}.lab-sidebar .lab-title-row>div{gap:8px}.lab-sidebar .lab-title-row h1{padding-left:8px;font-size:16px}}
 .lab-dialog input[type=checkbox],.lab-app input[type=checkbox]{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;flex:0 0 18px;accent-color:var(--hau-navy)}
+
+/* On small screens, the workspace header is one bar; tools open on demand. */
+.lab-mobile-menu-toggle{display:none}
+@media(max-width:850px){
+ html{scroll-padding-top:80px}
+ .lab-app.lab-topnav>.lab-sidebar{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:10px 14px;min-height:66px}
+ .lab-topnav>.lab-sidebar>.lab-workspace-header{grid-column:1;grid-row:1}
+ .lab-sidebar .hau-logo{width:124px}
+ .lab-sidebar .lab-title-row>div{gap:12px}
+ .lab-sidebar .lab-title-row h1{font-size:18px;padding-left:12px}
+ .lab-mobile-menu-toggle{display:flex;grid-column:2;grid-row:1;align-items:center;justify-content:center;gap:7px;min-width:82px;min-height:44px;padding:8px 10px;border:1px solid #ffffff50;border-radius:8px;background:transparent;color:#fff;font:inherit;font-size:13px}
+ .lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.lab-global-search,.lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.pia-workspace-actions,.lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.lab-tabs{display:none}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded{gap:12px;max-height:calc(100dvh - 8px);overflow:auto}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-global-search{grid-column:1/-1;grid-row:2;max-width:none;width:100%}
+ .lab-sidebar .lab-global-search input{font-size:16px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0;margin:0}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>button{justify-content:flex-start;min-height:44px;padding:10px 12px;font-size:13px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>.lab-refresh{grid-column:1/-1;gap:8px;justify-content:flex-start}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>.lab-refresh:after{content:"Refresh workspace";display:inline;font-size:13px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.pia-workspace-actions{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid #ffffff35}
+ .pia-workspace-actions .pia-reminder-inbox{display:contents}
+ .pia-workspace-actions .pia-reminder-inbox>button{grid-column:1;grid-row:1;min-height:44px}
+ .pia-workspace-actions .pia-quick-capture{grid-column:2;grid-row:1;min-height:44px;justify-content:center;width:100%}
+ .pia-workspace-actions .pia-quick-capture kbd{display:none}
+ .pia-workspace-actions .pia-notices{position:static;grid-column:1/-1;grid-row:2;width:100%;max-height:40vh;box-shadow:none}
+}
+@media(max-width:360px){.lab-sidebar .hau-logo{width:108px}.lab-sidebar .lab-title-row>div{gap:9px}.lab-sidebar .lab-title-row h1{padding-left:9px}.lab-mobile-menu-toggle{min-width:76px}}

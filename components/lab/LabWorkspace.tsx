@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, CalendarDays, Check, CheckSquare2, ChevronRight, CircleHelp, Clipboard, Clock3, ExternalLink, FlaskConical, FolderKanban, LayoutGrid, LoaderCircle, Network, Plus, RefreshCw, Settings2, Sparkles, Users, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, CheckSquare2, ChevronRight, CircleHelp, Clipboard, Clock3, ExternalLink, FlaskConical, FolderKanban, LayoutGrid, LoaderCircle, Menu, Network, Plus, RefreshCw, Settings2, Sparkles, Users, X } from "lucide-react";
 import RecordEditor, { Modal } from "./RecordEditor";
 import LabSettings from "./LabSettings";
 import TaskWorkspace from "./TaskWorkspace";
@@ -66,6 +66,16 @@ function AssistantDialog({ state, selected, onClose, notify }: { state: LabState
 export default function LabWorkspace() {
   const [state, setState] = useState<LabState>(EMPTY_STATE);
   const [tab, setTab] = useState<Tab>("connections");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null), menuButton = useRef<HTMLButtonElement>(null);
+  const revealHeader = useCallback(() => { if (window.matchMedia("(max-width: 850px)").matches) setMobileMenuOpen(true); }, []);
+  const closeHeader = () => { setMobileMenuOpen(false); if (window.matchMedia("(max-width: 850px)").matches) menuButton.current?.focus(); };
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const outside = (event: PointerEvent) => { if (event.target instanceof Node && !headerRef.current?.contains(event.target) && !(event.target instanceof Element && event.target.closest(".lab-global-search-panel")) && !document.querySelector("dialog[open]")) setMobileMenuOpen(false); };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [mobileMenuOpen]);
   const [loading, setLoading] = useState(true), [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(""), [authError, setAuthError] = useState(false);
   const [statuses, setStatuses] = useState<string[]>([]), [degrees, setDegrees] = useState<string[]>([]);
@@ -86,8 +96,8 @@ export default function LabWorkspace() {
   const restoreDefaults = useCallback(() => { setStatuses(tab === "people" ? defaultPeopleStatuses() : tab === "projects" ? defaultProjectStatuses(state) : []); setDegrees([]); setDeadlineCommitments(tab === "deadlines" ? [...DEFAULT_TARGET_FILTERS] : []); setCertainties([]); setTopics([]); setDeadlineFilter("relevant"); }, [state, tab]);
   const defaultedTab = useRef<Tab | null>(null);
   useEffect(() => { if (!loading && defaultedTab.current !== tab) { defaultedTab.current = tab; restoreDefaults(); } }, [loading, tab, restoreDefaults]);
-  const changeTab = (next: Tab) => { if (next === tab) return; setTab(next); clearFilters(); setSort("name"); history.replaceState(null, "", `#${next}`); };
-  const openRecord = (record: LabRecord) => { setRecordHistory([]); setEditor({ kind: record.kind, record }); };
+  const changeTab = (next: Tab) => { closeHeader(); if (next === tab) return; setTab(next); clearFilters(); setSort("name"); history.replaceState(null, "", `#${next}`); };
+  const openRecord = (record: LabRecord) => { if (mobileMenuOpen) closeHeader(); setRecordHistory([]); setEditor({ kind: record.kind, record }); };
   const navigateRecord = (record: LabRecord, from?: LabRecord) => { if (from?.id === record.id || editor?.record?.id === record.id) return; const prior = from || editor?.record; setRecordHistory(previous => prior ? [...previous, prior] : previous); setEditor({ kind: record.kind, record }); };
   const goBack = (index: number) => { const previousRecord = recordHistory[index]; if (!previousRecord) return; const record = [...state.projects, ...state.students, ...state.deadlines, ...state.tasks].find(item => item.id === previousRecord.id) || previousRecord; setRecordHistory(previous => previous.slice(0, index)); setEditor({ kind: record.kind, record }); };
   const statusOptions = optionsFor(state, tab === "people" ? "student_lab_statuses" : "project_statuses");
@@ -123,10 +133,12 @@ export default function LabWorkspace() {
   const changeView = (next: RecordView) => setViews(previous => ({ ...previous, [tab]: next }));
   const anyFilters = Boolean(statuses.length || degrees.length || deadlineCommitments.length || certainties.length || topics.length || tab === "deadlines" && deadlineFilter !== "all");
   return <div className={`lab-app lab-topnav ${tab === "connections" ? "lab-graph-page" : ""}`}>
-    <aside className="lab-sidebar"><header className="lab-workspace-header"><div className="lab-brand-line"><span className="lab-brand-symbol"><FlaskConical size={23} strokeWidth={1.6} /></span><span>RESEARCH WORKSPACE</span><span className="lab-private-pill"><span />{IS_BROWSER_DEMO ? "Fictional demo" : "Private workspace"}</span></div><div className="lab-title-row"><div><img className="hau-logo" src={`${import.meta.env.BASE_URL}hau-logo-white.svg`} alt="Harper Adams University" width="1920" height="625" /><h1>PIA</h1><p>Principal Investigator’s Assistant.</p></div></div></header>
-    <div className="pia-workspace-actions"><ReminderInbox state={state} open={openRecord} /><QuickCapture refresh={refresh} notify={setToast} /></div>
-    <GlobalSearch state={state} open={openRecord} loading={loading} />
-    <nav className="lab-tabs" aria-label="Lab sections">{TABS.map(({ id, label, icon: Icon }) => <button className={tab === id ? "is-active" : ""} key={id} onClick={() => changeTab(id)} aria-current={tab === id ? "page" : undefined}><Icon size={16} />{label}{id === "projects" && <span>{state.projects.length}</span>}{id === "people" && <span>{state.students.length}</span>}{id === "tasks" && <span>{state.tasks.filter(task => task.data.status !== "completed").length}</span>}</button>)}<button className="lab-refresh" disabled={refreshing} aria-label="Refresh lab data" title={loadedAt ? `Last refreshed ${loadedAt}` : "Refresh"} onClick={refresh}><RefreshCw size={15} className={refreshing ? "lab-spin" : ""} /></button></nav><div className="lab-sidebar-footer"><span className="lab-status-dot" />{IS_BROWSER_DEMO ? "Saved in this browser" : "Private research workspace"}</div></aside>
+    <aside ref={headerRef} className={`lab-sidebar ${mobileMenuOpen ? "is-mobile-expanded" : ""}`} onKeyDown={event => { if (event.key === "Escape" && mobileMenuOpen && !document.querySelector("dialog[open]")) closeHeader(); }}><header className="lab-workspace-header"><div className="lab-brand-line"><span className="lab-brand-symbol"><FlaskConical size={23} strokeWidth={1.6} /></span><span>RESEARCH WORKSPACE</span><span className="lab-private-pill"><span />{IS_BROWSER_DEMO ? "Fictional demo" : "Private workspace"}</span></div><div className="lab-title-row"><div><img className="hau-logo" src={`${import.meta.env.BASE_URL}hau-logo-white.svg`} alt="Harper Adams University" width="1920" height="625" /><h1>PIA</h1><p>Principal Investigator’s Assistant.</p></div></div></header>
+    <button ref={menuButton} className="lab-mobile-menu-toggle" aria-expanded={mobileMenuOpen} aria-controls="lab-header-actions lab-header-search lab-header-navigation" onClick={() => setMobileMenuOpen(value => !value)}>{mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}<span>{mobileMenuOpen ? "Close" : "Menu"}</span></button>
+    <GlobalSearch state={state} open={openRecord} loading={loading} reveal={revealHeader} />
+    <nav id="lab-header-navigation" className="lab-tabs" aria-label="Lab sections">{TABS.map(({ id, label, icon: Icon }) => <button className={tab === id ? "is-active" : ""} key={id} onClick={() => changeTab(id)} aria-current={tab === id ? "page" : undefined}><Icon size={16} />{label}{id === "projects" && <span>{state.projects.length}</span>}{id === "people" && <span>{state.students.length}</span>}{id === "tasks" && <span>{state.tasks.filter(task => task.data.status !== "completed").length}</span>}</button>)}<button className="lab-refresh" disabled={refreshing} aria-label="Refresh lab data" title={loadedAt ? `Last refreshed ${loadedAt}` : "Refresh"} onClick={refresh}><RefreshCw size={15} className={refreshing ? "lab-spin" : ""} /></button></nav>
+    <div id="lab-header-actions" className="pia-workspace-actions"><ReminderInbox state={state} open={openRecord} /><QuickCapture refresh={refresh} notify={setToast} reveal={revealHeader} /></div>
+    <div className="lab-sidebar-footer"><span className="lab-status-dot" />{IS_BROWSER_DEMO ? "Saved in this browser" : "Private research workspace"}</div></aside>
     <main className="lab-main">
     {error && <div className="lab-alert lab-alert-error" role="alert"><CircleHelp size={19} /><div><strong>{authError ? "Sign in to open your private lab." : "Your lab could not be refreshed."}</strong><p>{authError ? "Use your workspace sign-in, then refresh this page." : error}</p></div>{authError ? <a className="lab-button lab-small" href="/login">Sign in</a> : <button className="lab-button lab-small" onClick={refresh}>Try again</button>}</div>}
     {loading ? <div className="lab-loading"><LoaderCircle size={26} className="lab-spin" /><p>Opening your lab…</p></div> : <>

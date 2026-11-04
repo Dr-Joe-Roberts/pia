@@ -60,3 +60,26 @@ test('standalone tasks persist, complete, reopen and round-trip in browser backu
   await assert.rejects(store.request('/api/records', write({ kind: 'task', data: { name: 'Invalid', due_date: '2026-02-30' } })), /calendar date/);
   await assert.rejects(store.request(`/api/records/${task.id}`, write({ data: task.data, expected_revision: 1 }, 'PATCH')), /another tab/);
 });
+
+
+test('archiving and restoring a completed repeating task retains its history without another successor', async () => {
+  const { store } = sandbox();
+  const { record } = await store.request('/api/records', write({ kind: 'task', data: {
+    name: 'Weekly teaching preparation', planned_date: '2026-11-04', repeat: { unit: 'week', interval: 1 },
+    notes: 'Keep these teaching notes', checklist: [{ id: 'slides', text: 'Update slides', done: true }],
+  } }));
+  const { record: completed } = await store.request(`/api/records/${record.id}`, write({ data: { ...record.data, status: 'completed' }, expected_revision: record.revision }, 'PATCH'));
+  const { record: archived } = await store.request(`/api/records/${record.id}`, write({ expected_revision: completed.revision }, 'DELETE'));
+  assert.equal((await store.request('/api/records?kind=task')).records.some(r => r.id === record.id), false);
+  const saved = (await store.request('/api/records?kind=task&archived=true')).records.find(r => r.id === record.id);
+  assert.deepEqual(saved.data, completed.data);
+  const { record: restored } = await store.request(`/api/records/${record.id}/restore`, write({ expected_revision: archived.revision }));
+  assert.equal(restored.deleted_at, null);
+  assert.equal(restored.data.status, 'completed');
+  assert.equal(restored.data.completed_at, completed.data.completed_at);
+  assert.equal(restored.data.notes, 'Keep these teaching notes');
+  assert.equal(restored.data.checklist[0].done, true);
+  const occurrences = (await store.request('/api/records?kind=task')).records.filter(r => r.data.name === record.data.name);
+  assert.equal(occurrences.length, 2);
+  assert.equal(occurrences.filter(r => r.data.status !== 'completed').length, 1);
+});
