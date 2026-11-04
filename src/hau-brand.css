@@ -1,0 +1,90 @@
+/* HAU web palette: navy rgb(1,33,105), yellow rgb(255,232,0).
+   Official white artwork is kept intact on a navy background. */
+:root{--hau-navy:#012169;--hau-yellow:#ffe800;--hau-ink:#172b4d;--hau-muted:#526078;--hau-line:#dce2ec;--hau-tint:#edf1f8}
+body{background:#f5f7fa;color:var(--hau-ink)}
+.lab-app,.lab-dialog{--lab-ink:var(--hau-ink);--lab-muted:var(--hau-muted);--lab-line:var(--hau-line);--lab-green:var(--hau-navy);--lab-teal:var(--hau-navy);--lab-surface:#fff;color:var(--hau-ink)}
+.lab-app,.lab-main{background:#f5f7fa}
+.lab-app .lab-sidebar{background:var(--hau-navy);border-bottom:4px solid var(--hau-yellow);color:#fff;backdrop-filter:none;padding-top:14px;padding-bottom:14px;gap:20px}
+.lab-sidebar .lab-workspace-header{flex-shrink:0}
+.lab-sidebar .lab-title-row{margin:0}
+.lab-sidebar .lab-title-row>div{display:flex;align-items:center;gap:16px}
+.lab-sidebar .lab-title-row h1{color:#fff;font-size:19px;letter-spacing:.2px;border-left:1px solid #ffffff55;padding-left:16px}
+.lab-sidebar .lab-title-row h1:before{display:none!important;content:none!important}
+.hau-logo{display:block;width:156px;height:auto;max-width:none;object-fit:contain}
+.lab-sidebar .lab-title-row p{display:none}
+.lab-app .lab-tabs>button{color:#fff}
+.lab-app .lab-tabs>button:hover{background:#ffffff18;color:#fff}
+.lab-app .lab-tabs>button.is-active{background:var(--hau-yellow);color:var(--hau-navy);border-color:var(--hau-yellow)}
+.lab-app .lab-tabs>button>span{background:#ffffff20;color:inherit}
+.lab-app .lab-tabs>button.is-active>span{background:#01216912;color:var(--hau-navy)}
+.lab-app .lab-tabs .lab-refresh{color:#fff}
+.lab-app .lab-button.lab-primary,.lab-dialog .lab-button.lab-primary{background:var(--hau-navy);border-color:var(--hau-navy);color:#fff}
+.lab-app .lab-button.lab-primary:hover,.lab-dialog .lab-button.lab-primary:hover{background:#143f91}
+.lab-app .lab-content-heading h2,.lab-dialog h2,.lab-dialog h3,.lab-dialog .lab-field>span,.lab-dialog .lab-editor-section h3{color:var(--hau-navy)}
+.lab-app .lab-content-heading p,.lab-dialog .lab-dialog-header p,.lab-dialog .lab-field-hint,.lab-dialog .lab-save-state{color:var(--hau-muted)}
+.lab-dialog{background:#fff;border-color:var(--hau-line);box-shadow:0 20px 100px #01216933}
+.lab-dialog-header{border-top:5px solid var(--hau-yellow);background:#fff}
+.lab-dialog .lab-field input,.lab-dialog .lab-field select,.lab-dialog .lab-field textarea{color:var(--hau-ink);border-color:#b9c4d6;background:#fff}
+.lab-dialog .lab-dialog-footer{background:#f6f8fb;border-color:var(--hau-line)}
+.lab-dialog .lab-text-button,.lab-app .lab-text-button{color:var(--hau-navy)}
+.lab-dialog .lab-markdown,.lab-overview-facts dd{color:var(--hau-ink)}
+.lab-overview-description,.lab-connected-record,.lab-read-links>a{background:#f5f7fb;border-color:var(--hau-line);color:var(--hau-ink)}
+.lab-app .lab-toast{background:var(--hau-navy);color:#fff;border-color:var(--hau-navy)}
+.lab-app .pia-task-summary button{color:var(--hau-navy);border-color:var(--hau-line)}
+.lab-app .pia-task-summary .has-overdue{color:#9c421b}
+.lab-app .pia-task-views button[aria-pressed=true]{background:var(--hau-navy);color:#fff}
+.lab-app .pia-task-views button[aria-pressed=true] span{background:#ffffff22;color:#fff}
+.lab-app .pia-task-check{color:var(--hau-navy)}
+.lab-app .pia-task-category{background:var(--hau-tint);color:var(--hau-navy)}
+.public-demo-bar{background:#edf1f8;color:var(--hau-navy);border-color:var(--hau-line)}
+.lab-app :focus-visible,.lab-dialog :focus-visible{outline-color:#2456ab!important}
+.lab-sidebar :focus-visible{outline-color:var(--hau-yellow)!important}
+.connect-page{color:var(--hau-ink)}.connect-page h1,.connect-page h1 em,.connect-page a{color:var(--hau-navy)}
+@media(max-width:1100px){.lab-app .lab-sidebar{flex-wrap:wrap}.lab-app .lab-tabs{flex:1 1 100%;justify-content:flex-start}.lab-app .lab-sidebar .lab-workspace-header{flex:1}.hau-logo{width:144px}}
+@media(max-width:600px){.lab-app .lab-sidebar{gap:12px;padding:14px 12px}.hau-logo{width:120px}.lab-sidebar .lab-title-row>div{gap:12px}.lab-sidebar .lab-title-row h1{font-size:17px;padding-left:12px}.lab-app .lab-sidebar .lab-workspace-header{flex-basis:100%}.lab-app .lab-tabs{margin-top:0}.lab-app .lab-tabs>button{min-height:42px}}
+
+/* Place global planning controls explicitly so they cannot displace the navigation. */
+.lab-app.lab-topnav>.lab-sidebar{grid-template-columns:auto minmax(180px,320px) minmax(0,1fr);gap:12px 20px}
+.lab-topnav>.lab-sidebar>.lab-workspace-header{grid-column:1;grid-row:1}
+.lab-topnav>.lab-sidebar>.lab-global-search{grid-column:2;grid-row:1;max-width:none}
+.lab-topnav>.lab-sidebar>.pia-workspace-actions{grid-column:3;grid-row:1;display:flex;justify-content:flex-end;align-items:center;gap:10px;min-width:0}
+.lab-topnav>.lab-sidebar>.lab-tabs{grid-column:1/-1;grid-row:2;justify-content:flex-end}
+.pia-workspace-actions .pia-quick-capture{width:auto;margin:0;gap:12px}
+.pia-workspace-actions .pia-reminder-inbox{position:relative;margin:0}
+.pia-workspace-actions .lab-button{color:var(--hau-navy);white-space:nowrap}
+.pia-workspace-actions .pia-notices{position:absolute;top:100%;right:0;z-index:40;width:min(360px,calc(100vw - 32px));max-height:55vh;padding:12px;background:#fff;color:var(--hau-ink);border:1px solid var(--hau-line);border-radius:10px;box-shadow:0 12px 36px #01216933}
+@media(max-width:850px){
+ .lab-app.lab-topnav>.lab-sidebar{grid-template-columns:minmax(0,1fr) minmax(150px,1fr);gap:10px}
+ .lab-topnav>.lab-sidebar>.pia-workspace-actions{grid-column:1/-1;grid-row:2;justify-content:flex-start}
+ .lab-topnav>.lab-sidebar>.lab-tabs{grid-row:3;justify-content:flex-start}
+ .pia-workspace-actions .pia-notices{left:0;right:auto}
+}
+@media(max-width:400px){.hau-logo{width:100px}.lab-sidebar .lab-title-row>div{gap:8px}.lab-sidebar .lab-title-row h1{padding-left:8px;font-size:16px}}
+.lab-dialog input[type=checkbox],.lab-app input[type=checkbox]{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;flex:0 0 18px;accent-color:var(--hau-navy)}
+
+/* On small screens, the workspace header is one bar; tools open on demand. */
+.lab-mobile-menu-toggle{display:none}
+@media(max-width:850px){
+ html{scroll-padding-top:80px}
+ .lab-app.lab-topnav>.lab-sidebar{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:10px 14px;min-height:66px}
+ .lab-topnav>.lab-sidebar>.lab-workspace-header{grid-column:1;grid-row:1}
+ .lab-sidebar .hau-logo{width:124px}
+ .lab-sidebar .lab-title-row>div{gap:12px}
+ .lab-sidebar .lab-title-row h1{font-size:18px;padding-left:12px}
+ .lab-mobile-menu-toggle{display:flex;grid-column:2;grid-row:1;align-items:center;justify-content:center;gap:7px;min-width:82px;min-height:44px;padding:8px 10px;border:1px solid #ffffff50;border-radius:8px;background:transparent;color:#fff;font:inherit;font-size:13px}
+ .lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.lab-global-search,.lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.pia-workspace-actions,.lab-topnav>.lab-sidebar:not(.is-mobile-expanded)>.lab-tabs{display:none}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded{gap:12px;max-height:calc(100dvh - 8px);overflow:auto}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-global-search{grid-column:1/-1;grid-row:2;max-width:none;width:100%}
+ .lab-sidebar .lab-global-search input{font-size:16px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0;margin:0}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>button{justify-content:flex-start;min-height:44px;padding:10px 12px;font-size:13px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>.lab-refresh{grid-column:1/-1;gap:8px;justify-content:flex-start}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.lab-tabs>.lab-refresh:after{content:"Refresh workspace";display:inline;font-size:13px}
+ .lab-topnav>.lab-sidebar.is-mobile-expanded>.pia-workspace-actions{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid #ffffff35}
+ .pia-workspace-actions .pia-reminder-inbox{display:contents}
+ .pia-workspace-actions .pia-reminder-inbox>button{grid-column:1;grid-row:1;min-height:44px}
+ .pia-workspace-actions .pia-quick-capture{grid-column:2;grid-row:1;min-height:44px;justify-content:center;width:100%}
+ .pia-workspace-actions .pia-quick-capture kbd{display:none}
+ .pia-workspace-actions .pia-notices{position:static;grid-column:1/-1;grid-row:2;width:100%;max-height:40vh;box-shadow:none}
+}
+@media(max-width:360px){.lab-sidebar .hau-logo{width:108px}.lab-sidebar .lab-title-row>div{gap:9px}.lab-sidebar .lab-title-row h1{padding-left:9px}.lab-mobile-menu-toggle{min-width:76px}}

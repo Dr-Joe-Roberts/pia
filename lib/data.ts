@@ -1,5 +1,6 @@
+import { nextRecurringTask } from "./task-planning.ts";
 import { env } from "cloudflare:workers";
-import { AppError, type AppRecord, type RecordKind, normalizeData, parse, idSchema, mutationKeySchema } from "./domain";
+import { AppError, type AppRecord, type RecordKind, normalizeData, parse, idSchema, mutationKeySchema, taskCompletion } from "./domain";
 import { allowedKinds, assertKind, assertProductionScope, hasLab, isKindAllowed, WORKSPACE_KIND } from "./workspace";
 
 type Row = { id: string; kind: RecordKind; revision: number; data_json: string; created_at: string; updated_at: string; deleted_at: string | null };
@@ -28,7 +29,7 @@ export async function listRecords(user: string, options: { kind?: RecordKind; qu
   if (options.kind) { where.push("kind=?"); args.push(options.kind); }
   if (options.archived === "true") where.push("deleted_at IS NOT NULL"); else if (options.archived !== "all") where.push("deleted_at IS NULL");
   if (options.query) { where.push("data_json LIKE ? ESCAPE '\\'"); args.push(`%${options.query.replace(/[\\%_]/g, "\\$&")}%`); }
-  if (options.date) { where.push("json_extract(data_json,'$.date')=?"); args.push(options.date); }
+  if (options.date) { where.push(options.kind === "task" ? "json_extract(data_json,'$.due_date')=?" : "json_extract(data_json,'$.date')=?"); args.push(options.date); }
   const limit = Math.min(Math.max(options.limit ?? 1000, 1), 2000), offset = Math.max(options.offset ?? 0, 0);
   const { results } = await database().prepare(`SELECT * FROM records WHERE ${where.join(" AND ")} ORDER BY updated_at DESC,id ASC LIMIT ? OFFSET ?`).bind(...args, limit + 1, offset).all<Row>();
   return { records: await enrich(user, results.slice(0, limit).map(fromRow)), has_more: results.length > limit, next_offset: results.length > limit ? offset + limit : null };
@@ -66,11 +67,13 @@ export async function writeRecord(user: string, input: { id?: string; kind?: Rec
   if (!kind) throw new AppError(400, "invalid_kind", "Choose a record kind.");
   assertKind(kind);
   const data = action === "create" || action === "update" ? normalizeData(kind, input.data) : current!.data;
+  if (kind === "task" && (action === "create" || action === "update")) data.completed_at = taskCompletion(data, current?.data ?? null, now);
   if (action === "create" || action === "update") validateMergeSelfReference(kind, data, id);
   const references: { field: "deadline_id" | "project_id" | "merged_into_project_id"; id: string; kind: RecordKind }[] = [];
   if ((kind === "project" || kind === "deadline_target") && data.deadline_id) references.push({ field: "deadline_id", id: String(data.deadline_id), kind: "deadline" });
   if (kind === "project" && data.merged_into_project_id) references.push({ field: "merged_into_project_id", id: String(data.merged_into_project_id), kind: "project" });
   if (kind === "deadline_target" || kind === "project_update") references.push({ field: "project_id", id: String(data.project_id), kind: "project" });
+  if (kind === "task" && data.project_id) references.push({ field: "project_id", id: String(data.project_id), kind: "project" });
   // Preserve unchanged historical references on unrelated edits, including a
   // target missing from an old export. This grants no access to that target:
   // reads remain tenant-scoped, and new/changed references require an active,
@@ -96,6 +99,15 @@ export async function writeRecord(user: string, input: { id?: string; kind?: Rec
   if (action === "create") statements.push(db.prepare(`INSERT OR IGNORE INTO records(id,user_id,kind,revision,data_json,created_at,updated_at,deleted_at,last_mutation_id) SELECT ?,?,?,1,?,?,?,NULL,? WHERE ${guard}${deadlineGuard}${targetGuard}`).bind(id, user, kind, JSON.stringify(data), now, now, attempt, ...args, ...deadlineArgs, ...targetArgs));
   else if (action === "update") statements.push(db.prepare(`UPDATE records SET data_json=?,revision=revision+1,updated_at=?,last_mutation_id=? WHERE user_id=? AND id=? AND revision=? AND deleted_at IS NULL AND ${guard}${deadlineGuard}${targetGuard}`).bind(JSON.stringify(data), now, attempt, user, id, input.expected_revision ?? -1, ...args, ...deadlineArgs, ...targetArgs));
   else statements.push(db.prepare(`UPDATE records SET deleted_at=?,revision=revision+1,updated_at=?,last_mutation_id=? WHERE user_id=? AND id=? AND revision=? AND deleted_at IS ${action === "restore" ? "NOT " : ""}NULL AND ${guard}${targetGuard}`).bind(action === "archive" ? now : null, now, attempt, user, id, input.expected_revision ?? -1, ...args, ...targetArgs));
+  if (kind === "task" && action === "update" && current?.data.status !== "completed" && data.status === "completed") {
+    const next = nextRecurringTask(data);
+    if (next) {
+      const childId = "repeat_" + await hash({ user, parent: id });
+      const changed = "EXISTS (SELECT 1 FROM records WHERE user_id=? AND id=? AND last_mutation_id=?)";
+      statements.push(db.prepare(`INSERT OR IGNORE INTO records(id,user_id,kind,revision,data_json,created_at,updated_at,deleted_at,last_mutation_id) SELECT ?,?,'task',1,?,?,?,NULL,? WHERE ${changed}`).bind(childId, user, JSON.stringify(next), now, now, attempt, user, id, attempt));
+      statements.push(db.prepare("INSERT OR IGNORE INTO audit_events(id,user_id,record_id,action,revision,data_json,created_at) SELECT ?,user_id,id,'repeat',revision,data_json,? FROM records WHERE user_id=? AND id=? AND last_mutation_id=?").bind("repeat_" + attempt, now, user, childId, attempt));
+    }
+  }
   if (kind === "meal") {
     // A whole-day confirmation describes a particular log. Changing it requires the
     // user to confirm again, and must be in the same transaction as the meal write.
@@ -129,13 +141,13 @@ export async function setLabLink(user: string, input: { project_id: string; stud
   await db.batch(statements); mutationResult((await getMutation(user, key, requestHash))!);
   return { project: await getRecord(user, project.id), student: await getRecord(user, student.id) };
 }
-export async function exportData(user: string) {
+export async function exportData(user: string, includeAudit = true) {
   const db = database(), scope = allowedKinds(), scopeSql = "kind IN (" + scope.map(() => "?").join(",") + ")";
   const [rows, links, files, audit] = await Promise.all([
     db.prepare("SELECT * FROM records WHERE user_id=? AND " + scopeSql + " ORDER BY created_at,id").bind(user, ...scope).all<Row>(),
     hasLab ? db.prepare("SELECT project_id,student_id,created_at FROM lab_links WHERE user_id=?").bind(user).all() : Promise.resolve({ results: [] }),
     hasLab ? db.prepare("SELECT id,name,content_type,size,created_at FROM files WHERE user_id=?").bind(user).all() : Promise.resolve({ results: [] }),
-    db.prepare("SELECT record_id,action,revision,data_json,created_at FROM audit_events WHERE user_id=? AND record_id IN (SELECT id FROM records WHERE user_id=? AND " + scopeSql + ") ORDER BY created_at").bind(user, user, ...scope).all(),
+    includeAudit ? db.prepare("SELECT record_id,action,revision,data_json,created_at FROM audit_events WHERE user_id=? AND record_id IN (SELECT id FROM records WHERE user_id=? AND " + scopeSql + ") ORDER BY created_at").bind(user, user, ...scope).all() : Promise.resolve({ results: [] }),
   ]);
   return { format: "private-app-backup", app: WORKSPACE_KIND, version: 1, exported_at: new Date().toISOString(), records: await enrich(user, rows.results.map(fromRow)), links: links.results, files: files.results, audit_events: audit.results, attachment_note: "Attachment metadata is included. Download attachment files separately; private URLs require this app's sign-in." };
 }

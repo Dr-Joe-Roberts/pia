@@ -20,10 +20,10 @@ function ok(value,message){assert.ok(value,message);checks++;}
 function status(response,expected,message){assert.equal(response.status,expected,message);checks++;}
 try {
   await build({entryPoints:[join(root,'worker/index.ts')],outfile:join(directory,'worker.mjs'),bundle:true,format:'esm',platform:'browser',target:'es2022',external:['cloudflare:workers','node:*'],tsconfig:join(root,'tsconfig.json'),logLevel:'silent'});
-  const workerOptions={rootPath:directory,modulesRoot:directory,modules:true,scriptPath:join(directory,'worker.mjs'),compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat','global_fetch_strictly_public'],d1Databases:['DB'],kvNamespaces:['OAUTH_KV'],bindings:{APP_ORIGIN:origin,OWNER_PASSWORD:password,SESSION_SECRET:secret},serviceBindings:{ASSETS:()=>new Response('<html><body>Test app shell</body></html>',{headers:{'content-type':'text/html'}})}};
+  const workerOptions={rootPath:directory,modulesRoot:directory,modules:true,scriptPath:join(directory,'worker.mjs'),compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat','global_fetch_strictly_public'],d1Databases:['DB'],r2Buckets:['BUCKET'],kvNamespaces:['OAUTH_KV'],bindings:{APP_ORIGIN:origin,OWNER_PASSWORD:password,SESSION_SECRET:secret},serviceBindings:{ASSETS:()=>new Response('<html><body>Test app shell</body></html>',{headers:{'content-type':'text/html'}})}};
   worker=new Miniflare(workerOptions);
   const db=await worker.getD1Database('DB');
-  for(const file of ['drizzle/0000_groovy_landau.sql','drizzle/0001_auth.sql']){
+  for(const file of ['drizzle/0000_groovy_landau.sql','drizzle/0001_auth.sql','drizzle/0002_planning.sql']){
     const sql=await readFile(join(root,file),'utf8');
     for(const statement of sql.replaceAll('--> statement-breakpoint','').split(';').map(v=>v.trim()).filter(Boolean))await db.prepare(statement).run();
   }
@@ -70,10 +70,70 @@ try {
   ok(token.access_token&&token.refresh_token,'access and refresh tokens issued');
   const read=await mcp(token.access_token,rpc('read_record',{id:created.id}));status(read,200,'OAuth MCP read works');const result=await read.json();ok(JSON.parse(result.result.content[0].text).data.name==='Fictional security test project','MCP and browser share owner workspace');
   const write=await mcp(token.access_token,rpc('upsert_record',{kind:'student',data:{name:'Fictional Student',lab_status:'In Group'},idempotency_key:'integration:oauth:create'}));status(write,200,'OAuth MCP write works');ok(!(await write.json()).result.isError,'write successfully committed');
+  const taskWrite=await mcp(token.access_token,rpc('upsert_record',{kind:'task',data:{name:'Prepare fictional teaching session',category:'Teaching',due_date:'2026-11-04'},idempotency_key:'integration:task:create'}));
+  status(taskWrite,200,'MCP accepts standalone personal tasks');
+  const taskResult=await taskWrite.json();ok(!taskResult.result.isError,'task saved through MCP');
+  const task=JSON.parse(taskResult.result.content[0].text);ok(task.data.project_id===null,'no project is required');
+  const taskRead=await browser('/api/records/'+task.id);status(taskRead,200,'task visible in browser API');
+  const taskFinish=await browser('/api/records/'+task.id,{method:'PATCH',headers:{origin,'content-type':'application/json','X-CSRF-Token':account.csrf_token},body:JSON.stringify({data:{...task.data,status:'completed'},expected_revision:task.revision,idempotency_key:'integration:task:finish'})});
+  status(taskFinish,200,'task can be completed through authenticated browser');
+  const finished=(await taskFinish.json()).record;ok(Boolean(finished.data.completed_at),'completion time saved');
+  const taskMcpRead=await mcp(token.access_token,rpc('read_record',{id:task.id}));
+  ok(JSON.parse((await taskMcpRead.json()).result.content[0].text).data.status==='completed','MCP sees browser completion');
+  const contextResponse=await mcp(token.access_token,rpc('workspace_context'));
+  const context=JSON.parse((await contextResponse.json()).result.content[0].text);
+  ok(Boolean(context.field_guide.task)&&context.context.task.records.some(r=>r.id===task.id),'context includes task schema and saved tasks');
+  status(await fetch('/api/records?kind=task'),401,'anonymous callers cannot read personal tasks');
   const refreshed=await fetch('/oauth/token',form({grant_type:'refresh_token',client_id:client.client_id,refresh_token:token.refresh_token,resource:origin+'/mcp'}));status(refreshed,200,'refresh token exchange');const refreshedToken=await refreshed.json();ok(refreshedToken.access_token&&refreshedToken.refresh_token!==token.refresh_token,'refresh token rotates');
   const reader=await register('Fictional read-only assistant');const readToken=await grant(reader,['workspace:read']);
   status(await mcp(readToken.access_token,rpc('read_record',{id:created.id})),200,'read-only token may read');
   const forbidden=await mcp(readToken.access_token,rpc('upsert_record',{kind:'project',data:{name:'Forbidden'},idempotency_key:'integration:forbidden'}));status(forbidden,403,'read-only token cannot mutate');ok(forbidden.headers.get('www-authenticate')?.includes('workspace:write'),'scope escalation challenge explains missing write access');
+  const mutate = (path, data, method='POST') => browser(path,{method,headers:{origin,'content-type':'application/json','X-CSRF-Token':account.csrf_token},body:JSON.stringify(data)});
+  status(await fetch('/api/planning'),401,'anonymous reminders denied');
+  status(await fetch('/api/backups/manifest'),401,'anonymous complete backup denied');
+  status(await browser('/api/planning',{method:'POST',headers:{origin,'content-type':'application/json'},body:'{}'}),403,'reminder settings require CSRF');
+  const prefs=(await (await browser('/api/planning')).json());ok(!prefs.settings.reminders_enabled&&!prefs.settings.weekly_digest,'reminders default to opt-out');
+  const repeatCreated=await mutate('/api/records',{kind:'task',data:{name:'Fictional repeating practical',module:'Example module',academic_year:'2026/27',due_date:'2020-01-01',planned_date:'2019-12-30',estimated_minutes:60,repeat:{unit:'week',interval:1},checklist:[{id:'check-one',text:'Prepare handout',done:true}]}});
+  status(repeatCreated,201,'planning and repeat fields accepted');const repeatRecord=(await repeatCreated.json()).record;
+  const completedRepeat=await mutate('/api/records/'+repeatRecord.id,{data:{...repeatRecord.data,status:'completed'},expected_revision:1,idempotency_key:'integration-repeat'},'PATCH');status(completedRepeat,200,'repeat completion commits');
+  const allTasks=(await (await browser('/api/records?kind=task')).json()).records;
+  ok(allTasks.some(r=>r.data.name===repeatRecord.data.name&&r.data.due_date==='2020-01-08'&&r.data.planned_date==='2020-01-06'&&!r.data.checklist[0].done),'next repeat occurrence and reset checklist visible');
+  const template=await mutate('/api/records',{kind:'task_template',data:{name:'Fictional reusable practical',checklist:[{id:'one',text:'Check equipment',done:false}]}});status(template,201,'reusable templates accepted');
+  const setPrefs=await mutate('/api/planning',{expected_revision:prefs.revision,settings:{...prefs.settings,reminders_enabled:true,reminder_hour:0}});status(setPrefs,200,'opt-in preferences stored');
+  const noticeState=await (await browser('/api/planning')).json();ok(noticeState.unread>0,'due reminders are generated after opting in');
+  const runtime=await worker.getWorker();await runtime.scheduled({scheduledTime:new Date(),cron:'0 * * * *'});
+  const afterSchedule=await (await browser('/api/planning')).json();ok(afterSchedule.notices.length===noticeState.notices.length,'scheduled retries do not duplicate reminders');
+  status(await mutate('/api/planning',{ids:noticeState.notices.map(n=>n.id)},'PATCH'),200,'owner can mark reminders read');
+  status(await mutate('/api/planning',{expected_revision:0,settings:prefs.settings}),409,'stale reminder settings rejected');
+
+  const attachmentBytes=new TextEncoder().encode('Fictional attachment for complete backup testing.');
+  const uploadForm=new FormData();uploadForm.append('file',new File([attachmentBytes],'example.txt',{type:'text/plain'}));
+  const multipartRequest=new Request(origin+'/api/files',{method:'POST',body:uploadForm});
+  const uploaded=await browser('/api/files',{method:'POST',headers:{origin,'X-CSRF-Token':account.csrf_token,'content-type':multipartRequest.headers.get('content-type')},body:await multipartRequest.arrayBuffer()});status(uploaded,201,'fixture attachment uploaded');const uploadedFile=await uploaded.json();
+  const attached=await mutate('/api/records',{kind:'task',data:{name:'Fictional attachment recovery',files:[uploadedFile]}});const attachedRecord=(await attached.json()).record;
+  const manifestResponse=await browser('/api/backups/manifest');status(manifestResponse,200,'complete backup manifest available');const manifest=await manifestResponse.json();
+  const fileMetadata=manifest.files.find(f=>f.id===uploadedFile.id);ok(fileMetadata?.sha256===createHash('sha256').update(attachmentBytes).digest('hex'),'manifest includes verified attachment checksum');
+  ok(manifest.reminder_settings.reminders_enabled,'backup includes reminder preferences');
+  const countBefore=await db.prepare("SELECT COUNT(*) AS count FROM records WHERE user_id='owner'").first();
+  const previewResponse=await mutate('/api/backups/preview',manifest);status(previewResponse,200,'restore preview validates backup');const preview=await previewResponse.json();ok(preview.add===0&&preview.restore_files.length===0,'preview preserves all existing records and files');
+  const countAfter=await db.prepare("SELECT COUNT(*) AS count FROM records WHERE user_id='owner'").first();ok(countBefore.count===countAfter.count,'preview does not write records');
+  const invalidManifest={...manifest,records:[...manifest.records,{id:'bad-import',kind:'task',data:{name:'',planned_date:'2026-02-30'}}]};status(await mutate('/api/backups/preview',invalidManifest),400,'invalid restore rejected in preview');
+  const brokenArchive={...manifest,records:[...manifest.records,{id:'broken-private-file',kind:'task',data:{name:'Fictional broken attachment',files:[{name:'missing.txt',url:'/api/files/missing-test-file'}]}}]};status(await mutate('/api/backups/preview',brokenArchive),409,'complete restore refuses an unlisted private attachment');
+  const bucket=await worker.getR2Bucket('BUCKET');
+  await bucket.delete('private/owner/'+uploadedFile.id);
+  await db.prepare('DELETE FROM records WHERE user_id=? AND id=?').bind('owner',attachedRecord.id).run();
+  const missingPreview=await (await mutate('/api/backups/preview',manifest)).json();ok(missingPreview.add===1&&missingPreview.restore_files.includes(uploadedFile.id),'preview detects missing record and missing attachment content');
+  const restoreFile=(bytes,metadata=fileMetadata)=>browser('/api/backups/file/'+uploadedFile.id,{method:'POST',headers:{origin,'content-type':'application/octet-stream','X-CSRF-Token':account.csrf_token,'X-PIA-File':encodeURIComponent(JSON.stringify(metadata))},body:bytes});
+  status(await restoreFile(new TextEncoder().encode('corrupted')),400,'restore refuses a corrupt attachment');
+  status(await restoreFile(attachmentBytes),200,'missing attachment restored without replacing existing objects');
+  ok((await (await restoreFile(attachmentBytes)).json()).restored===false,'attachment restore retry is idempotent');
+  const restoredDownload=await browser('/api/files/'+uploadedFile.id);status(restoredDownload,200,'restored attachment uses authenticated download');ok(await restoredDownload.text()===new TextDecoder().decode(attachmentBytes),'restored attachment bytes match exactly');
+  status(await fetch('/api/files/'+uploadedFile.id),401,'restored attachment remains private');
+  const mergeResponse=await mutate('/api/import',{records:manifest.records,links:manifest.links,mode:'merge'});status(mergeResponse,200,'validated records restored');ok((await mergeResponse.json()).created===1,'existing records preserved during restore');
+  status(await mutate('/api/backups/completed',{}),200,'completed backup timestamp stored');ok(Boolean((await (await browser('/api/planning')).json()).last_backup_at),'last complete backup is visible');
+  const conflictBytes=new TextEncoder().encode('different content');status(await restoreFile(conflictBytes,{...fileMetadata,size:conflictBytes.length,sha256:createHash('sha256').update(conflictBytes).digest('hex')}),409,'existing attachment cannot be overwritten');
+  status(await browser('/api/backups/preview',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(manifest)}),403,'restore preview is CSRF protected');
+
   const connections=await browser('/auth/connections');status(connections,200,'grant management page');const connectionsHtml=await connections.text();ok(!connectionsHtml.includes('<script>alert'),'grant names escaped');const grantId=hidden(connectionsHtml,'grant_id');
   const revoke=await browser('/auth/connections',form({csrf:account.csrf_token,grant_id:grantId}));status(revoke,303,'owner revokes grant');
   const remaining=await browser('/auth/connections');ok(!(await remaining.text()).includes(`value="${grantId}"`),'revoked grant no longer listed');
@@ -85,5 +145,8 @@ try {
   status(await browser('/api/me'),401,'rotating session secret invalidates existing browser sessions');
   status(await mcp(refreshedToken.access_token,rpc('workspace_context')),401,'rotating session secret invalidates existing OAuth access');
   status(await mcp(readToken.access_token,rpc('workspace_context')),401,'rotation invalidates every connected assistant');
+  await worker.setOptions({...workerOptions,bindings:{...workerOptions.bindings,APP_ORIGIN:'https://setup.invalid',OWNER_PASSWORD:'short'}});
+  const setup=await fetch('/login');status(setup,403,'incomplete installation stays locked');const setupHtml=await setup.text();ok(setupHtml.includes('Finish your private setup')&&setupHtml.includes('OWNER_PASSWORD'),'guided setup identifies missing configuration');ok(!setupHtml.includes(secret)&&!setupHtml.includes(password),'setup screen never exposes secrets');
+  const privateAfterSetup=await fetch('/api/records');status(privateAfterSetup,403,'setup page does not bypass private API protection');ok(privateAfterSetup.headers.get('content-type').includes('application/json'),'API errors remain structured JSON');
   console.log(`PASS: ${checks} real-worker OAuth/session/CSRF checks; isolated fictional D1/KV removed.`);
 } finally {await worker?.dispose();await rm(directory,{recursive:true,force:true});}

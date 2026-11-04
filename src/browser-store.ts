@@ -1,10 +1,14 @@
+import { DEFAULT_REMINDERS, reminderNotices } from "../lib/reminders.ts";
+import { nextRecurringTask } from "../lib/task-planning.ts";
+import { recordId } from "../lib/record-id.ts";
 import type { LabRecord, LabKind, LabData } from '../components/lab/model';
+import { TASK_PRIORITIES, TASK_STATUSES, taskCompletion } from '../lib/tasks.ts';
 
 type Link = { project_id: string; student_id: string };
-type Snapshot = { records: LabRecord[]; links: Link[] };
+type Snapshot = { records: LabRecord[]; links: Link[]; planning?: { settings: typeof DEFAULT_REMINDERS; revision: number; last_backup_at: string | null; read_ids: string[] } };
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const DEMO_STORAGE_KEY = 'pia-public-demo-v1';
-const kinds = new Set(['project', 'student', 'deadline', 'deadline_target', 'project_update', 'lab_setting']);
+const kinds = new Set(['project', 'student', 'deadline', 'deadline_target', 'project_update', 'lab_setting', 'task', 'task_template']);
 
 /** Each visitor owns a browser-local sandbox. This adapter never contacts a server. */
 export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
@@ -27,12 +31,28 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
     if (record.kind === 'student') result.data.connected_projects = state.links.filter(l => l.student_id === record.id && state.records.some(r => r.id === l.project_id && !r.deleted_at)).map(l => l.project_id);
     return result;
   }
-  function validate(record: LabRecord, state: Snapshot) {
+  function validate(record: LabRecord, state: Snapshot, previous?: LabData, importing = false) {
     if (!kinds.has(record.kind)) throw new Error('Unsupported PIA record type.');
     const d = record.data;
     if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('Record details are required.');
     if (['project', 'student'].includes(record.kind) && !String(d.name || '').trim()) throw new Error('Add a name.');
     const reference = (id: unknown, kind: string) => state.records.some(r => r.id === id && r.kind === kind && !r.deleted_at);
+    if (record.kind === 'task_template' && !d.name?.trim()) throw new Error('Give the template a name.');
+    if (record.kind === 'task') {
+      d.name = String(d.name || '').trim();
+      if (!d.name || d.name.length > 240) throw new Error('Enter a task title of up to 240 characters.');
+      d.category = String(d.category || '').trim() || 'General';
+      if (d.category.length > 240) throw new Error('Use a category of up to 240 characters.');
+      d.status ??= 'todo'; d.priority ??= 'normal'; d.notes ??= '';
+      if (!TASK_STATUSES.includes(d.status as typeof TASK_STATUSES[number])) throw new Error('Choose a task status.');
+      if (!TASK_PRIORITIES.includes(d.priority as typeof TASK_PRIORITIES[number])) throw new Error('Choose a task priority.');
+      for (const field of ['planned_date', 'follow_up_date', 'remind_on'] as const) if (d[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(d[field]!) || new Date(d[field]!).toISOString().slice(0, 10) !== d[field])) throw new Error('Choose a real calendar date.');
+      if (d.repeat && (!d.due_date && !d.planned_date || !Number.isInteger(d.repeat.interval) || d.repeat.interval < 1 || d.repeat.interval > 52)) throw new Error('Repeating tasks need a date and interval from 1 to 52.');
+      d.due_date ||= null; d.project_id ||= null;
+      if (d.due_date && (!/^\d{4}-\d{2}-\d{2}$/.test(d.due_date) || !Number.isFinite(Date.parse(d.due_date)) || new Date(d.due_date).toISOString().slice(0, 10) !== d.due_date)) throw new Error('Choose a real calendar date.');
+      if (d.project_id && !importing && d.project_id !== previous?.project_id && !reference(d.project_id, 'project')) throw new Error('Choose an active project or leave the task standalone.');
+      if (d.status !== 'completed') d.completed_at = null;
+    }
     if (['deadline_target', 'project_update'].includes(record.kind) && !reference(d.project_id, 'project')) throw new Error('Choose an active project.');
     if (record.kind === 'deadline_target') {
       if (!reference(d.deadline_id, 'deadline')) throw new Error('Choose an active deadline.');
@@ -55,22 +75,54 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
         if (body.expected_revision !== record.revision) throw new Error('This record changed in another tab. Reload it before saving.');
       };
       let result: unknown;
-      if (url.pathname === '/api/records' && method === 'GET') {
+      if (url.pathname === '/api/planning') {
+        state.planning ??= { settings: { ...DEFAULT_REMINDERS }, revision: 0, last_backup_at: null, read_ids: [] };
+        if (method === 'POST') { if (body.expected_revision !== state.planning.revision) throw new Error('Settings changed. Reload before saving.'); state.planning.settings = body.settings; state.planning.revision++; save(state); }
+        if (method === 'PATCH') { state.planning.read_ids = [...new Set([...state.planning.read_ids, ...body.ids])]; save(state); }
+        const notices = reminderNotices(state.records.filter(r => r.kind === 'task'), state.planning.settings).map(n => ({ ...n, read_at: state.planning!.read_ids.includes(n.id) ? new Date().toISOString() : null }));
+        result = { ...state.planning, notices, unread: notices.filter(n => !n.read_at).length };
+      } else if (url.pathname === '/api/backups/manifest' && method === 'GET') {
+        result = { reminder_settings: state.planning?.settings || DEFAULT_REMINDERS, format: 'pia-complete-backup', version: 2, records: state.records, links: state.links, files: [], exported_at: new Date().toISOString() };
+      } else if (url.pathname === '/api/backups/completed' && method === 'POST') {
+        state.planning ??= { settings: { ...DEFAULT_REMINDERS }, revision: 0, last_backup_at: null, read_ids: [] }; state.planning.last_backup_at = new Date().toISOString(); save(state); result = { prepared_at: state.planning.last_backup_at };
+      } else if (url.pathname === '/api/backups/preview' && method === 'POST') {
+        if (!Array.isArray(body.records) || body.records.length > 2000) throw new Error('Choose a workspace backup with up to 2,000 records.');
+        const candidate = structuredClone(state);
+        for (const r of body.records) if (!candidate.records.some(existing => existing.id === r.id)) candidate.records.push(r);
+        for (const r of body.records) validate(structuredClone(r), candidate, undefined, true);
+        const added = body.records.filter((r: LabRecord) => !state.records.some(existing => existing.id === r.id));
+        result = { add: added.length, keep: body.records.length - added.length, archived: added.filter((r: LabRecord) => r.deleted_at).length, restore_files: (body.files || []).map((f: { id: string }) => f.id), complete: body.format === 'pia-complete-backup', links: body.links?.length || 0 };
+      } else if (url.pathname === '/api/records' && method === 'GET') {
         const archived = url.searchParams.get('archived') === 'true';
         const records = state.records.filter(r => r.kind === url.searchParams.get('kind') && Boolean(r.deleted_at) === archived).map(r => expanded(r, state));
         const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0), limit = Math.max(1, Number(url.searchParams.get('limit')) || 2000);
         result = { records: records.slice(offset, offset + limit), has_more: records.length > offset + limit, next_offset: offset + limit };
       } else if (url.pathname === '/api/records' && method === 'POST') {
         const now = new Date().toISOString();
-        const record = { id: crypto.randomUUID(), kind: body.kind as LabKind, data: structuredClone(body.data) as LabData, revision: 1, created_at: now, updated_at: now, deleted_at: null };
-        validate(record, state); state.records.push(record); save(state); result = { record: expanded(record, state) };
+        const record = { id: recordId(), kind: body.kind as LabKind, data: structuredClone(body.data) as LabData, revision: 1, created_at: now, updated_at: now, deleted_at: null };
+        validate(record, state);
+        if (record.kind === 'task') record.data.completed_at = taskCompletion(record.data, null, now) as string | null;
+        state.records.push(record); save(state); result = { record: expanded(record, state) };
       } else if (url.pathname.startsWith('/api/records/')) {
         const [, , , id, action] = url.pathname.split('/');
         const record = find(id);
         if (method === 'GET') result = { record: expanded(record, state) };
         else {
           current(record);
-          if (method === 'PATCH' && !action) { record.data = structuredClone(body.data); validate(record, state); }
+          if (method === 'PATCH' && !action) {
+            const previous = record.data;
+            record.data = structuredClone(body.data); validate(record, state, previous);
+            if (previous.next_demo_occurrence_id) record.data.next_demo_occurrence_id = previous.next_demo_occurrence_id;
+            if (record.kind === 'task') {
+              record.data.completed_at = taskCompletion(record.data, previous, new Date().toISOString()) as string | null;
+              if (previous.status !== 'completed' && record.data.status === 'completed') {
+                const next = nextRecurringTask(record.data), childId = typeof previous.next_demo_occurrence_id === 'string' ? previous.next_demo_occurrence_id : recordId();
+                record.data.next_demo_occurrence_id = childId;
+                if (next) delete next.next_demo_occurrence_id;
+                if (next && !state.records.some(r => r.id === childId)) state.records.push({ ...record, id: childId, revision: 1, data: next, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+              }
+            }
+          }
           else if (method === 'DELETE' && !action) record.deleted_at = new Date().toISOString();
           else if (method === 'POST' && action === 'restore') record.deleted_at = null;
           else throw new Error('Unsupported demo action.');
@@ -99,7 +151,7 @@ export function createBrowserStore(seed: Snapshot, storage: StorageLike) {
           // Validate references after every record has been added, independent of backup ordering.
           state.records.push(record); created++;
         }
-        for (const record of state.records) if (!record.deleted_at) validate(record, state);
+        for (const record of state.records) if (!record.deleted_at) validate(record, state, undefined, true);
         if (Array.isArray(body.links)) for (const l of body.links) {
           if (state.records.some(r => r.id === l.project_id && r.kind === 'project') && state.records.some(r => r.id === l.student_id && r.kind === 'student') && !state.links.some(prior => prior.project_id === l.project_id && prior.student_id === l.student_id)) state.links.push({ project_id: l.project_id, student_id: l.student_id });
         }

@@ -1,6 +1,6 @@
 import { deadlineDateLabel, personStatusLabel, personStatusValue, projectStatusValue, recordName, type LabRecord, type LabState } from "./model";
 
-export type SearchKind = "student" | "project" | "deadline";
+export type SearchKind = "student" | "project" | "deadline" | "task";
 export type SearchResult = { record: LabRecord; title: string; subtitle: string; matchedInNotes: boolean };
 export type SearchGroup = { kind: SearchKind; label: string; results: SearchResult[] };
 
@@ -11,14 +11,14 @@ export function normalizeSearch(value: string) {
 export function buildSearchIndex(state: LabState): IndexedRecord[] {
   const entries: IndexedRecord[] = [];
   const seen = new Set<string>();
-  for (const record of [...state.students, ...state.projects, ...state.deadlines]) {
-    if (record.deleted_at || !["student", "project", "deadline"].includes(record.kind)) continue;
+  for (const record of [...state.students, ...state.projects, ...state.deadlines, ...(state.tasks || [])]) {
+    if (record.deleted_at || !["student", "project", "deadline", "task"].includes(record.kind)) continue;
     const key = `${record.kind}:${record.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const data = record.data, title = recordName(record), kind = record.kind as SearchKind;
-    const subtitle = kind === "student" ? [data.degree, personStatusLabel(data.lab_status)].filter(Boolean).join(" · ") : kind === "project" ? projectStatusValue(data.status) || "Status not set" : [data.deadline_type === "abstract" ? "Abstract" : data.deadline_type === "other" ? "Milestone" : "Full paper", deadlineDateLabel(data)].join(" · ");
-    const aliases = kind === "deadline" ? [data.venue, data.cycle, ...(data.topics || [])] : kind === "student" ? [data.email, data.degree, personStatusLabel(data.lab_status), personStatusValue(data.lab_status), data.lab_status] : [projectStatusValue(data.status), data.status];
+    const subtitle = kind === "task" ? [data.category || "General", data.status === "completed" ? "Completed" : data.status === "waiting" ? "Waiting" : data.status === "in_progress" ? "In progress" : "To do", data.due_date].filter(Boolean).join(" · ") : kind === "student" ? [data.degree, personStatusLabel(data.lab_status)].filter(Boolean).join(" · ") : kind === "project" ? projectStatusValue(data.status) || "Status not set" : [data.deadline_type === "abstract" ? "Abstract" : data.deadline_type === "other" ? "Milestone" : "Full paper", deadlineDateLabel(data)].join(" · ");
+    const aliases = kind === "task" ? [data.module, data.academic_year, data.waiting_for, data.planned_date, data.category, data.status?.replaceAll("_", " "), data.priority, data.due_date] : kind === "deadline" ? [data.venue, data.cycle, ...(data.topics || [])] : kind === "student" ? [data.email, data.degree, personStatusLabel(data.lab_status), personStatusValue(data.lab_status), data.lab_status] : [projectStatusValue(data.status), data.status];
     const nameText = normalizeSearch(title);
     const searchText = normalizeSearch([title, ...aliases, data.title, data.details, typeof data.description === "string" ? data.description : "", data.summary, data.notes, data.next_action, ...(data.links || []).map(link => link.label || link.name || "")].filter(Boolean).join(" "));
     entries.push({ record, kind, title, subtitle, matchedInNotes: false, nameText, searchText });
@@ -34,5 +34,5 @@ export function searchLab(index: IndexedRecord[], query: string): SearchGroup[] 
     const rank = entry.nameText === normalized ? 0 : entry.nameText.startsWith(normalized) ? 1 : nameMatch ? 2 : 3;
     return { ...entry, matchedInNotes: !nameMatch, rank };
   }).sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title) || a.record.id.localeCompare(b.record.id));
-  return ([{ kind: "student", label: "People" }, { kind: "project", label: "Projects" }, { kind: "deadline", label: "Deadlines" }] as const).map(group => ({ ...group, results: matches.filter(result => result.kind === group.kind) })).filter(group => group.results.length > 0);
+  return ([{ kind: "student", label: "People" }, { kind: "project", label: "Projects" }, { kind: "deadline", label: "Deadlines" }, { kind: "task", label: "Tasks" }] as const).map(group => ({ ...group, results: matches.filter(result => result.kind === group.kind) })).filter(group => group.results.length > 0);
 }

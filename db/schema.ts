@@ -15,5 +15,12 @@ export const auditEvents = sqliteTable("audit_events", {
   id: text("id").primaryKey(), userId: text("user_id").notNull(), recordId: text("record_id").notNull(), action: text("action").notNull(), revision: integer("revision"), dataJson: text("data_json"), createdAt: text("created_at").notNull(),
 }, t => [index("audit_user_record").on(t.userId, t.recordId, t.createdAt)]);
 export const files = sqliteTable("files", {
-  id: text("id").primaryKey(), userId: text("user_id").notNull(), name: text("name").notNull(), contentType: text("content_type").notNull(), size: integer("size").notNull(), createdAt: text("created_at").notNull(),
+  id: text("id").primaryKey(), userId: text("user_id").notNull(), objectKey: text("object_key"), name: text("name").notNull(), contentType: text("content_type").notNull(), size: integer("size").notNull(), createdAt: text("created_at").notNull(),
 }, t => [index("files_user").on(t.userId)]);
+
+export const piaPreferences = sqliteTable("pia_preferences", {
+  userId: text("user_id").primaryKey().notNull(), revision: integer("revision").notNull().default(1), dataJson: text("data_json").notNull(), lastBackupAt: text("last_backup_at"),
+});
+export const piaNotifications = sqliteTable("pia_notifications", {
+  userId: text("user_id").notNull(), id: text("id").notNull(), title: text("title").notNull(), body: text("body").notNull(), taskId: text("task_id"), createdAt: text("created_at").notNull(), readAt: text("read_at"),
+}, t => [primaryKey({ columns: [t.userId, t.id] }), index("pia_notifications_user").on(t.userId, t.createdAt)]);

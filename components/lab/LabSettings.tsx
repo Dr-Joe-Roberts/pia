@@ -1,5 +1,7 @@
+import BackupPanel from "./BackupPanel";
 "use client";
 
+import { ReminderSettings } from "./Reminders";
 import { useRef, useState } from "react";
 import { Archive, ArrowDownToLine, Check, LoaderCircle, Plus, RotateCcw, Save, Upload, X } from "lucide-react";
 import { IS_BROWSER_DEMO, api, optionsFor, personStatusLabel, personStatusValue, recordName, type LabRecord, type LabState, type Option } from "./model";
@@ -32,35 +34,11 @@ export default function LabSettings({ state, refresh, notify }: { state: LabStat
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [archived, setArchived] = useState<LabRecord[] | null>(null);
-  const input = useRef<HTMLInputElement>(null);
-  const exportBackup = async () => {
-    setBusy("export"); setError("");
-    try {
-      const backup = await api<{ records: LabRecord[]; links?: { project_id: string; student_id: string }[]; files?: unknown[]; [key: string]: unknown }>("/api/export");
-      const records = backup.records.filter(r => ["project", "student", "deadline", "lab_setting", "deadline_target", "project_update"].includes(r.kind));
-      const fileIds = new Set(records.flatMap(record => record.data.files || []).map(file => file.url.startsWith("/api/files/") ? file.url.slice("/api/files/".length) : "").filter(Boolean));
-      const lab = { ...backup, records, files: backup.files?.filter(file => typeof file === "object" && file !== null && "id" in file && fileIds.has(String(file.id))), audit_events: undefined };
-      const blob = new Blob([JSON.stringify(lab, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `pia-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify("Lab backup downloaded. Uploaded files remain hosted privately.");
-    } catch (err) { setError(err instanceof Error ? err.message : "Export failed."); } finally { setBusy(""); }
-  };
-  const importBackup = async (file: File) => {
-    setBusy("import"); setError("");
-    try {
-      if (file.size > 7 * 1024 * 1024) throw new Error("Choose a JSON backup smaller than 7 MB. Ask your assistant to import a larger backup in batches.");
-      const data = JSON.parse(await file.text());
-      if (!Array.isArray(data.records)) throw new Error("Choose a workspace JSON backup containing records. For an older Base44 export, ask your assistant to migrate it using the app connection.");
-      const records = data.records.filter((r: { kind?: string }) => ["project", "student", "deadline", "lab_setting", "deadline_target", "project_update"].includes(r.kind || ""));
-      if (!records.length) throw new Error("No PIA records found in this backup.");
-      if (records.length > 2000) throw new Error("This backup has more than 2,000 records. Ask your assistant to import it in batches with relationships preserved.");
-      const result = await api<{ created: number; skipped: number }>("/api/import", { method: "POST", body: JSON.stringify({ records, links: data.links, mode: "merge" }) });
-      await refresh(); notify(`Import complete: ${result.created} added, ${result.skipped} already present.`);
-    } catch (err) { setError(err instanceof Error ? err.message : "Import failed."); } finally { setBusy(""); }
-  };
-  const loadArchived = async () => { setBusy("archive"); setError(""); try { const results = await Promise.all(["project", "student", "deadline"].map(kind => api<{ records: LabRecord[] }>(`/api/records?kind=${kind}&archived=true`))); setArchived(results.flatMap(r => r.records)); } catch (err) { setError(err instanceof Error ? err.message : "Could not load archive."); } finally { setBusy(""); } };
+  const loadArchived = async () => { setBusy("archive"); setError(""); try { const results = await Promise.all(["project", "student", "deadline", "task", "task_template"].map(kind => api<{ records: LabRecord[] }>(`/api/records?kind=${kind}&archived=true`))); setArchived(results.flatMap(r => r.records)); } catch (err) { setError(err instanceof Error ? err.message : "Could not load archive."); } finally { setBusy(""); } };
   const restore = async (record: LabRecord) => { setBusy(record.id); setError(""); try { await api(`/api/records/${record.id}/restore`, { method: "POST", body: JSON.stringify({ expected_revision: record.revision }) }); setArchived(previous => previous?.filter(r => r.id !== record.id) || []); await refresh(); notify(`${recordName(record)} restored.`); } catch (err) { setError(err instanceof Error ? err.message : "Could not restore."); } finally { setBusy(""); } };
-  return <div className="lab-settings-grid"><div><OptionEditor title="Project statuses" description="A workflow that fits your research." type="project_statuses" state={state} refresh={refresh} /><OptionEditor title="Lab membership" description="Keep track of each person's relationship to the group." type="student_lab_statuses" state={state} refresh={refresh} /><OptionEditor title="Degrees & roles" description="Labels for the people in your lab." type="student_degrees" state={state} refresh={refresh} /></div><div>
-    <section className="lab-panel lab-setting-panel"><div className="lab-panel-heading"><div><h3>Your data, kept portable</h3><p>Back up projects, people, deadlines, settings, and their connections.</p></div></div><div className="lab-setting-actions"><button className="lab-button" disabled={!!busy} onClick={exportBackup}>{busy === "export" ? <LoaderCircle size={17} className="lab-spin" /> : <ArrowDownToLine size={17} />}Export lab backup</button><button className="lab-button" disabled={!!busy} onClick={() => input.current?.click()}>{busy === "import" ? <LoaderCircle size={17} className="lab-spin" /> : <Upload size={17} />}Import backup</button><input ref={input} type="file" className="lab-visually-hidden" accept="application/json,.json" onChange={e => { if (e.target.files?.[0]) void importBackup(e.target.files[0]); e.target.value = ""; }} /></div><p className="lab-field-hint">Imports add missing records and preserve existing records. Uploaded files are referenced by private links; the backup does not include their contents.</p></section>
-    <section className="lab-panel lab-setting-panel"><div className="lab-panel-heading"><div><h3><Archive size={18} />Archive</h3><p>Bring back projects, people, or deadlines.</p></div></div>{archived === null ? <button className="lab-button" disabled={!!busy} onClick={loadArchived}>{busy === "archive" ? <LoaderCircle size={16} className="lab-spin" /> : <Archive size={16} />}View archived records</button> : archived.length ? <div className="lab-archive-list">{archived.map(record => <div className="lab-archive-row" key={record.id}><div><strong>{recordName(record)}</strong><span>{record.kind === "student" ? "Person" : record.kind}</span></div><button className="lab-icon-button lab-bordered" disabled={!!busy} title="Restore" aria-label={`Restore ${recordName(record)}`} onClick={() => restore(record)}><RotateCcw size={16} /></button></div>)}</div> : <p className="lab-muted"><Check size={16} />Nothing in your archive.</p>}</section>
+  return <div className="lab-settings-grid"><div><ReminderSettings /><OptionEditor title="Project statuses" description="A workflow that fits your research." type="project_statuses" state={state} refresh={refresh} /><OptionEditor title="Lab membership" description="Keep track of each person's relationship to the group." type="student_lab_statuses" state={state} refresh={refresh} /><OptionEditor title="Degrees & roles" description="Labels for the people in your lab." type="student_degrees" state={state} refresh={refresh} /></div><div>
+    <BackupPanel refresh={refresh} notify={notify} />
+    <section className="lab-panel lab-setting-panel"><div className="lab-panel-heading"><div><h3><Archive size={18} />Archive</h3><p>Bring back tasks, projects, people, or deadlines.</p></div></div>{archived === null ? <button className="lab-button" disabled={!!busy} onClick={loadArchived}>{busy === "archive" ? <LoaderCircle size={16} className="lab-spin" /> : <Archive size={16} />}View archived records</button> : archived.length ? <div className="lab-archive-list">{archived.map(record => <div className="lab-archive-row" key={record.id}><div><strong>{recordName(record)}</strong><span>{record.kind === "student" ? "Person" : record.kind === "task_template" ? "Task template" : record.kind}</span></div><button className="lab-icon-button lab-bordered" disabled={!!busy} title="Restore" aria-label={`Restore ${recordName(record)}`} onClick={() => restore(record)}><RotateCcw size={16} /></button></div>)}</div> : <p className="lab-muted"><Check size={16} />Nothing in your archive.</p>}</section>
     <section className="lab-panel lab-setting-panel lab-soft-panel"><h3>A shared home for your assistant</h3><p>{IS_BROWSER_DEMO ? "This demo stores edits in your browser. Deploy your own PIA for live assistant connections and private file uploads." : "Connect this workspace to your preferred AI assistant to work with your lab through conversation. Your saved records stay the source of truth."}</p><a className="lab-button" href={IS_BROWSER_DEMO ? "https://github.com/assafshocher/PIA/blob/main/docs/ai-connection.md" : "/connect"}>Set up your assistant</a></section>
     {error && <div className="lab-alert lab-alert-error" role="alert">{error}</div>}
   </div></div>;

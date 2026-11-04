@@ -5,5 +5,6 @@ import Connect from "./Connect";
 import "../app/globals.css";
 import "../app/lab/lab.css";
 import "katex/dist/katex.min.css";
+import "./hau-brand.css";
 function DemoNotice(){const [demo,setDemo]=useState(false);useEffect(()=>{fetch("/api/me").then(r=>r.json() as Promise<{demo?:boolean}>).then(v=>setDemo(v.demo===true)).catch(()=>{});},[]);return demo?<div className="demo-notice">Fictional demo workspace · illustrative dates</div>:null;}
 createRoot(document.getElementById("root")!).render(<React.StrictMode>{location.pathname === "/connect" ? <Connect /> : <LabWorkspace />}<DemoNotice /></React.StrictMode>);

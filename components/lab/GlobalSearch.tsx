@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, CalendarDays, FolderKanban, Search, Users, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckSquare2, FolderKanban, Search, Users, X } from "lucide-react";
 import { buildSearchIndex, searchLab, type SearchKind, type SearchResult } from "./global-search";
 import { type LabRecord, type LabState } from "./model";
 import "./global-search.css";
 
-const icons = { student: Users, project: FolderKanban, deadline: CalendarDays };
-const typeLabels: Record<SearchKind, string> = { student: "Person", project: "Project", deadline: "Deadline" };
+const icons = { student: Users, project: FolderKanban, deadline: CalendarDays, task: CheckSquare2 };
+const typeLabels: Record<SearchKind, string> = { student: "Person", project: "Project", deadline: "Deadline", task: "Task" };
 
-export default function GlobalSearch({ state, open, loading = false }: { state: LabState; open: (record: LabRecord) => void; loading?: boolean }) {
+export default function GlobalSearch({ state, open, loading = false, reveal }: { state: LabState; open: (record: LabRecord) => void; loading?: boolean; reveal?: () => void }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [active, setActive] = useState(-1);
@@ -49,11 +49,11 @@ export default function GlobalSearch({ state, open, loading = false }: { state: 
   }, [expanded, placePanel]);
   useEffect(() => {
     const shortcut = (event: globalThis.KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]:not([aria-hidden="true"])')) { event.preventDefault(); input.current?.focus(); placePanel(); setExpanded(true); }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]:not([aria-hidden="true"])')) { event.preventDefault(); reveal?.(); requestAnimationFrame(() => { input.current?.focus(); placePanel(); setExpanded(true); }); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [placePanel]);
+  }, [placePanel, reveal]);
   const activeId = activeResult ? resultId(activeResult) : hasMore && active === results.length ? `${id}-more` : undefined;
   useEffect(() => { if (expanded && activeId) document.getElementById(activeId)?.scrollIntoView({ block: "nearest" }); }, [activeId, expanded]);
   const revealAll = () => { setShowAll(true); setActive(-1); input.current?.focus(); };
@@ -65,10 +65,10 @@ export default function GlobalSearch({ state, open, loading = false }: { state: 
     else if (event.key === "Escape") { event.preventDefault(); setExpanded(false); setActive(-1); }
     else if (event.key === "Tab") setExpanded(false);
   };
-  return <div className="lab-global-search" ref={wrapper}>
+  return <div id="lab-header-search" className="lab-global-search" ref={wrapper}>
     <div className={`lab-global-search-field ${expanded ? "is-open" : ""}`}>
       <Search size={16} aria-hidden="true" />
-      <input ref={input} role="combobox" aria-label="Search all lab records" aria-autocomplete="list" aria-expanded={expanded} aria-controls={`${id}-results`} aria-activedescendant={expanded ? activeId : undefined} autoComplete="off" spellCheck={false} placeholder="Search lab…" value={query} onFocus={show} onChange={event => { setQuery(event.target.value); setActive(-1); setShowAll(false); show(); }} onKeyDown={onKeyDown} onBlur={event => { if (!panel.current?.contains(event.relatedTarget) && !wrapper.current?.contains(event.relatedTarget)) setExpanded(false); }} />
+      <input ref={input} role="combobox" aria-label="Search all lab records" aria-autocomplete="list" aria-expanded={expanded} aria-controls={`${id}-results`} aria-activedescendant={expanded ? activeId : undefined} autoComplete="off" spellCheck={false} placeholder="Search workspace…" value={query} onFocus={show} onChange={event => { setQuery(event.target.value); setActive(-1); setShowAll(false); show(); }} onKeyDown={onKeyDown} onBlur={event => { if (!panel.current?.contains(event.relatedTarget) && !wrapper.current?.contains(event.relatedTarget)) setExpanded(false); }} />
       {query ? <button type="button" aria-label="Clear lab search" onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(""); setActive(-1); setShowAll(false); input.current?.focus(); show(); }}><X size={14} /></button> : <kbd title="Command or Control K">⌘ K</kbd>}
     </div>
     {expanded && createPortal(<div ref={panel} className="lab-global-search-panel" style={position}>

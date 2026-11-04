@@ -2,7 +2,7 @@ import { AppError, type RecordKind } from "./domain";
 export type WorkspaceKind = "lab" | "nutri" | "all";
 // The combined checkout is for local development only. Each deployed copy sets one app.
 export const WORKSPACE_KIND: WorkspaceKind = "lab";
-const LAB_KINDS: RecordKind[] = ["project", "student", "deadline", "deadline_target", "project_update", "lab_setting"];
+const LAB_KINDS: RecordKind[] = ["project", "student", "deadline", "deadline_target", "project_update", "lab_setting", "task", "task_template"];
 const NUTRI_KINDS: RecordKind[] = ["meal", "saved_dish", "nutrition_goal", "nutrition_profile", "measurement", "daily_expenditure", "daily_checkin", "user_fact", "workout_schedule"];
 export function allowedKinds(workspace: WorkspaceKind = WORKSPACE_KIND): RecordKind[] { return [...(workspace !== "nutri" ? LAB_KINDS : []), ...(workspace !== "lab" ? NUTRI_KINDS : [])]; }
 export function isKindAllowed(kind: RecordKind, workspace: WorkspaceKind = WORKSPACE_KIND) { return allowedKinds(workspace).includes(kind); }
